@@ -531,6 +531,8 @@ function verificarInstalacion() {
   // --- CONSTANTES Y CONFIGURACIÓN ---
   const REPORTS_STORAGE_KEY = 'daily_reports_pamplona';
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
+  // (NUEVO) Clave para la caché del formulario
+  const DAILY_REPORT_CACHE_KEY = 'daily_report_cache_pamplona';
 
   // Carga los datos desde los archivos JSON al iniciar la página.
   window.onload = function () {
@@ -558,6 +560,55 @@ function verificarInstalacion() {
       alert("No se pudieron cargar los datos para el reporte diario. Por favor, revise la conexión y recargue la página.");
     });
   };
+  
+  // --- (NUEVO) FUNCIÓN PARA GUARDAR LA CACHÉ DEL FORMULARIO ---
+  function saveDailyReportCache() {
+    const operario = document.getElementById("operario").value;
+    const ciclo = document.getElementById("ciclo").value;
+    const seccion = document.getElementById("seccion").value;
+    
+    // Solo guardar si los campos principales están seleccionados
+    if (operario && ciclo && seccion) {
+      const today = new Date().toISOString().slice(0, 10); // Formato YYYY-MM-DD
+      const cacheData = {
+        date: today,
+        operario: operario,
+        ciclo: ciclo,
+        seccion: seccion
+      };
+      localStorage.setItem(DAILY_REPORT_CACHE_KEY, JSON.stringify(cacheData));
+      console.log('Datos del formulario guardados en caché para hoy.');
+    }
+  }
+
+  // --- (NUEVO) FUNCIÓN PARA CARGAR LA CACHÉ DEL FORMULARIO ---
+  function loadDailyReportCache() {
+    const cachedDataString = localStorage.getItem(DAILY_REPORT_CACHE_KEY);
+    if (!cachedDataString) return; // No hay caché, no hacer nada
+
+    const today = new Date().toISOString().slice(0, 10);
+    const cachedData = JSON.parse(cachedDataString);
+
+    if (cachedData.date === today) {
+      // Si la caché es de hoy, rellenar los campos
+      document.getElementById('operario').value = cachedData.operario;
+      document.getElementById('ciclo').value = cachedData.ciclo;
+      
+      // Es crucial disparar el evento 'change' en el ciclo para que se carguen las secciones correspondientes
+      const cicloSelect = document.getElementById('ciclo');
+      const changeEvent = new Event('change');
+      cicloSelect.dispatchEvent(changeEvent);
+
+      // Ahora que las secciones están cargadas, podemos seleccionar la correcta
+      document.getElementById('seccion').value = cachedData.seccion;
+      console.log('Datos del formulario cargados desde la caché.');
+    } else {
+      // Si la caché es de un día anterior, limpiarla
+      localStorage.removeItem(DAILY_REPORT_CACHE_KEY);
+      console.log('Caché del formulario del día anterior eliminada.');
+    }
+  }
+
 
   // --- FUNCIONES DE MANEJO DE DATOS LOCALES ---
   function getReports() {
@@ -601,6 +652,10 @@ function verificarInstalacion() {
   function mostrarFormulario() {
     document.getElementById('inicio').classList.add('hidden');
     document.getElementById('vistaReporte').classList.remove('hidden');
+    
+    // (MODIFICADO) Cargar datos desde la caché al mostrar el formulario
+    loadDailyReportCache();
+    
     renderReportHistory();
     updateSyncButtonVisibility();
   }
@@ -732,6 +787,9 @@ function verificarInstalacion() {
       return;
     }
 
+    // (MODIFICADO) Guardar datos en caché al enviar reporte
+    saveDailyReportCache();
+
     if (!navigator.geolocation) {
       alert("Tu navegador no permite geolocalización.");
       return;
@@ -815,6 +873,9 @@ function verificarInstalacion() {
       alert("Por favor complete los campos: Operario y Vía.");
       return;
     }
+    
+    // (MODIFICADO) Guardar datos en caché al enviar reporte
+    saveDailyReportCache();
 
     if (!navigator.geolocation) {
       alert("Tu navegador no permite geolocalización.");
