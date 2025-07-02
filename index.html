@@ -330,6 +330,53 @@ body {
     margin: 8px 0;
 }
 
+/* --- ESTILOS PARA EL HISTORIAL DE REPORTES --- */
+#reporteHistorico {
+  text-align: left;
+  margin-top: 25px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+#reporteHistorico h3 {
+  text-align: center;
+  color: #333;
+}
+#listaHistorico {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+.item-historico {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.item-historico-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.status-synced {
+  color: #28a745;
+  font-weight: bold;
+}
+.status-pending_sync {
+  color: #ffc107;
+  font-weight: bold;
+}
+.item-historico details {
+  margin-top: 8px;
+}
+#forceSyncBtn {
+  background-color: #ff9800;
+  width: 100%;
+}
+</style>
 <style>
 .card pre {
   white-space: pre-wrap;
@@ -436,6 +483,19 @@ function verificarInstalacion() {
 <button class="btn btn-regresar" onclick="regresarAPrincipal()">INICIO</button>
 <a class="btn hidden" href="#" id="whatsappLink" target="_blank">ENVIAR AL GRUPO DE WHATSAPP</a>
 <button class="btn" onclick="copiarReporte()">📋 PEGAR REPORTE</button>
+
+<!-- INICIO: SECCIÓN DE HISTORIAL Y SINCRONIZACIÓN -->
+<div id="reporteHistorico">
+    <h3>Historial de Reportes Diarios</h3>
+    <div class="form-group">
+        <label for="mesHistorico">Filtrar por Mes:</label>
+        <select id="mesHistorico" onchange="renderReportHistory()"></select>
+    </div>
+    <div id="listaHistorico">No hay reportes guardados.</div>
+</div>
+<button class="btn" id="forceSyncBtn" onclick="forceSyncPending()" style="display: none; margin-top: 15px;">⚠️ FORZAR ENVÍO DE PENDIENTES</button>
+<!-- FIN: SECCIÓN DE HISTORIAL Y SINCRONIZACIÓN -->
+
 </div><div class="footer">
 <p>Versión: 001</p>
 <p id="fechaHora"></p>
@@ -444,9 +504,18 @@ function verificarInstalacion() {
 <!-- ========= INICIO DEL BLOQUE DE SCRIPT MODIFICADO ========= -->
 <!-- ================================================================= -->
 <script>
+  // --- CONSTANTES Y CONFIGURACIÓN ---
+  const REPORTS_STORAGE_KEY = 'daily_reports_pamplona';
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // !!  IMPORTANTE: REEMPLAZA ESTA URL CON LA URL DE TU SCRIPT DE GOOGLE     !!
+  // !!  El script debe estar implementado para aceptar peticiones POST.      !!
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
+
   // Carga los datos desde los archivos JSON al iniciar la página.
   window.onload = function () {
     mostrarFechaHora();
+    setupHistory();
 
     // Usamos Promise.all para cargar todos los archivos JSON a la vez.
     Promise.all([
@@ -455,13 +524,9 @@ function verificarInstalacion() {
       fetch('secciones.json').then(response => response.json())
     ])
     .then(([operarios, ciclos, seccionesPorCiclo]) => {
-      // Una vez que todos los datos se han cargado, poblamos los dropdowns.
-      
-      // Llenar selects al cargar
       llenarSelect("operario", operarios);
       llenarSelect("ciclo", ciclos);
 
-      // Añadir el listener al dropdown de ciclo para que actualice las secciones.
       document.getElementById("ciclo").addEventListener("change", function () {
         const cicloSeleccionado = this.value;
         const secciones = seccionesPorCiclo[cicloSeleccionado] || [];
@@ -469,12 +534,23 @@ function verificarInstalacion() {
       });
     })
     .catch(error => {
-      // Manejo de errores en caso de que un archivo no se pueda cargar.
       console.error("Error al cargar los datos de configuración:", error);
       alert("No se pudieron cargar los datos para el reporte diario. Por favor, revise la conexión y recargue la página.");
     });
   };
 
+  // --- FUNCIONES DE MANEJO DE DATOS LOCALES ---
+  function getReports() {
+    return JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY)) || [];
+  }
+
+  function saveReports(reports) {
+    localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
+    renderReportHistory();
+    updateSyncButtonVisibility();
+  }
+
+  // --- FUNCIONES DE LA INTERFAZ DE USUARIO (UI) ---
   function llenarSelect(id, valores) {
     const select = document.getElementById(id);
     select.innerHTML = '<option value="">Seleccione</option>';
@@ -505,6 +581,8 @@ function verificarInstalacion() {
   function mostrarFormulario() {
     document.getElementById('inicio').classList.add('hidden');
     document.getElementById('vistaReporte').classList.remove('hidden');
+    renderReportHistory();
+    updateSyncButtonVisibility();
   }
 
   function regresarAPrincipal() {
@@ -512,90 +590,260 @@ function verificarInstalacion() {
     document.getElementById('inicio').classList.remove('hidden');
   }
 
+  // --- LÓGICA PRINCIPAL DE REPORTES ---
+  async function guardarEstadoReporte(tipo, operario, ciclo, seccion) {
+      const reports = getReports();
+      const today = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const reportId = `${new Date().toISOString().slice(0, 10)}-${operario}`;
+      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      let report = reports.find(r => r.id === reportId);
+
+      if (!report) {
+          if (tipo !== 'salida') {
+              alert('Debe iniciar con "TRASLADO SALIDA" para crear el reporte del día.');
+              return;
+          }
+          report = {
+              id: reportId,
+              operario: operario,
+              fechaSalida: today,
+              status: 'in_progress'
+          };
+          reports.push(report);
+      }
+
+      switch(tipo) {
+          case 'salida':
+              report.ciclo = ciclo;
+              report.seccion = seccion;
+              report.horaSalida = hora;
+              break;
+          case 'inicio':
+              report.horaInicio = hora;
+              break;
+          case 'regreso':
+              report.horaRegreso = hora;
+              break;
+          case 'fin':
+              report.horaFin = hora;
+              report.status = 'pending_sync';
+              break;
+      }
+
+      saveReports(reports);
+      
+      if (tipo === 'fin') {
+          await submitReportToGoogleSheets(report);
+      }
+  }
   
-  const formUrl = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
+  async function submitReportToGoogleSheets(report) {
+      const dataToSend = {
+        operario: report.operario,
+        ciclo: report.ciclo || '',
+        seccion: report.seccion || '',
+        fechaSalida: report.fechaSalida,
+        horaSalida: report.horaSalida || '',
+        horaInicio: report.horaInicio || '',
+        horaRegreso: report.horaRegreso || '',
+        horaFin: report.horaFin || ''
+      };
+
+      try {
+          const response = await fetch(GOOGLE_SHEET_URL, {
+              method: 'POST',
+              body: new URLSearchParams(dataToSend) 
+          });
+
+          if (!response.ok) throw new Error(`Error en la respuesta del servidor: ${response.statusText}`);
+          
+          const result = await response.json();
+          if (result.status === 'success') {
+              const reports = getReports();
+              const reportIndex = reports.findIndex(r => r.id === report.id);
+              if (reportIndex > -1) {
+                  reports[reportIndex].status = 'synced';
+                  saveReports(reports);
+                  console.log('Reporte sincronizado con éxito:', report.id);
+                  alert('Reporte del día finalizado y enviado correctamente.');
+              }
+          } else {
+              throw new Error('El script de Google devolvió un error: ' + (result.message || 'Error desconocido'));
+          }
+      } catch (error) {
+          console.error('Error al enviar el reporte a Google Sheets:', error);
+          alert('No se pudo enviar el reporte. Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
+          // El estado ya es 'pending_sync', por lo que no hay que hacer nada más.
+      }
+  }
+
+  async function forceSyncPending() {
+      const reports = getReports();
+      const pendingReports = reports.filter(r => r.status === 'pending_sync');
+      
+      if (pendingReports.length === 0) {
+          alert("No hay reportes pendientes para enviar.");
+          return;
+      }
+
+      alert(`Iniciando envío de ${pendingReports.length} reporte(s) pendiente(s).`);
+      let successCount = 0;
+
+      for (const report of pendingReports) {
+          await submitReportToGoogleSheets(report);
+          // Re-evaluamos el estado del reporte después del intento
+          const updatedReports = getReports();
+          const syncedReport = updatedReports.find(r => r.id === report.id);
+          if(syncedReport && syncedReport.status === 'synced') {
+              successCount++;
+          }
+      }
+
+      alert(`${successCount} de ${pendingReports.length} reporte(s) fueron enviados con éxito.`);
+      renderReportHistory();
+      updateSyncButtonVisibility();
+  }
+
 
   function enviarReporte(tipo) {
-  const operario = document.getElementById("operario").value;
-  const ciclo = document.getElementById("ciclo").value;
-  const seccion = document.getElementById("seccion").value;
-  const via = document.getElementById("via").value.trim();
+    const operario = document.getElementById("operario").value;
+    const ciclo = document.getElementById("ciclo").value;
+    const seccion = document.getElementById("seccion").value;
+    const via = document.getElementById("via").value.trim();
 
-  if ((tipo === "salida" || tipo === "regreso") && (!operario || !ciclo || !seccion || !via)) {
-    alert("Por favor complete los campos: Operario, Ciclo, Sección y Vía.");
-    return;
-  }
+    if ((tipo === "salida" || tipo === "regreso") && (!operario || !ciclo || !seccion || !via)) {
+      alert("Por favor complete los campos: Operario, Ciclo, Sección y Vía.");
+      return;
+    }
 
-  if ((tipo === "inicio" || tipo === "fin") && (!operario || !via)) {
-    alert("Por favor complete los campos: Operario y Vía.");
-    return;
-  }
+    if ((tipo === "inicio" || tipo === "fin") && (!operario || !via)) {
+      alert("Por favor complete los campos: Operario y Vía.");
+      return;
+    }
 
-  if (!navigator.geolocation) {
-    alert("Tu navegador no permite geolocalización.");
-    return;
-  }
+    if (!navigator.geolocation) {
+      alert("Tu navegador no permite geolocalización.");
+      return;
+    }
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    const mapaCod = {
-      "0": "F", "1": "G", "2": "C", "3": "I", "4": "V",
-      "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J",
-      ".": "K", ",": "L", "-": "M"
-    };
-    const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
-    const lat = pos.coords.latitude.toFixed(7);
-    const lon = pos.coords.longitude.toFixed(7);
-    const codificado = codificarCoord(lat + "," + lon);
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const mapaCod = {
+        "0": "F", "1": "G", "2": "C", "3": "I", "4": "V",
+        "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J",
+        ".": "K", ",": "L", "-": "M"
+      };
+      const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
+      const lat = pos.coords.latitude.toFixed(7);
+      const lon = pos.coords.longitude.toFixed(7);
+      const codificado = codificarCoord(lat + "," + lon);
 
-    const fecha = new Date().toLocaleDateString();
-    const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const fecha = new Date().toLocaleDateString();
+      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    let titulo = "";
-    if (tipo === "salida") titulo = "🏍🔀 Traslado de salida";
-    if (tipo === "regreso") titulo = "🏍↩️ Traslado de regreso";
-    if (tipo === "inicio") titulo = "🧾 Inicio de labor";
-    if (tipo === "fin") titulo = "🪫 Fin de labor";
+      let titulo = "";
+      if (tipo === "salida") titulo = "🏍🔀 Traslado de salida";
+      if (tipo === "regreso") titulo = "🏍↩️ Traslado de regreso";
+      if (tipo === "inicio") titulo = "🧾 Inicio de labor";
+      if (tipo === "fin") titulo = "🪫 Fin de labor";
 
-    let mensaje = `${titulo}
+      let mensaje = `${titulo}
 🗓 Fecha: ${fecha} ${codificado.slice(0, Math.floor(codificado.length / 2))}
 ⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length / 2))}
 👷‍♂️ Operario: ${operario}`;
-    if (tipo === "salida" || tipo === "regreso") {
-      mensaje += `
+      if (tipo === "salida" || tipo === "regreso") {
+        mensaje += `
 🔁 Ciclo: ${ciclo}
 📍 Sección: ${seccion}
 🛣️ Vía: ${via}`;
-    } else {
-      mensaje += `
+      } else {
+        mensaje += `
 ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}`;
-    }
+      }
 
-    ultimoMensajeGenerado = mensaje;
-    const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
-    window.open(url, "_blank");
+      ultimoMensajeGenerado = mensaje;
+      
+      // Guardar el estado localmente ANTES de intentar enviar a WhatsApp
+      await guardarEstadoReporte(tipo, operario, ciclo, seccion);
+      
+      const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
+      window.open(url, "_blank");
 
-    document.getElementById("via").value = "";
-  }, () => {
-    alert("Favor activar GPS y DATOS para poder pasar a la aplicacion de WhatsApp");
-  });
-}
-
-// Variable global para guardar el mensaje
-let ultimoMensajeGenerado = "";
-
-// Función para copiar al portapapeles
-function copiarReporte() {
-  if (!ultimoMensajeGenerado) {
-    alert("No hay reporte disponible para copiar. Por favor genera uno primero.");
-    return;
+      document.getElementById("via").value = "";
+    }, () => {
+      alert("Favor activar GPS y DATOS para poder pasar a la aplicacion de WhatsApp");
+    });
   }
 
-  navigator.clipboard.writeText(ultimoMensajeGenerado).then(() => {
-    alert("Reporte copiado al portapapeles. Puedes pegarlo manualmente en WhatsApp.");
-  }).catch(() => {
-    alert("No se pudo copiar el texto. Intenta manualmente.");
-  });
-}
+  // --- FUNCIONES DEL HISTORIAL ---
+  let ultimoMensajeGenerado = "";
+
+  function copiarReporte() {
+    if (!ultimoMensajeGenerado) {
+      alert("No hay reporte disponible para copiar. Por favor genera uno primero.");
+      return;
+    }
+    navigator.clipboard.writeText(ultimoMensajeGenerado).then(() => {
+      alert("Reporte copiado al portapapeles. Puedes pegarlo manualmente en WhatsApp.");
+    }).catch(() => {
+      alert("No se pudo copiar el texto. Intenta manualmente.");
+    });
+  }
+  
+  function setupHistory() {
+      const reports = getReports();
+      const mesSelect = document.getElementById('mesHistorico');
+      const meses = [...new Set(reports.map(r => r.id.substring(0, 7)))]; // YYYY-MM
+      meses.sort().reverse();
+      
+      mesSelect.innerHTML = '<option value="">Todos</option>';
+      meses.forEach(mes => {
+          const option = document.createElement('option');
+          option.value = mes;
+          const [year, month] = mes.split('-');
+          option.textContent = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+          mesSelect.appendChild(option);
+      });
+  }
+  
+  function renderReportHistory() {
+      setupHistory(); // Recalcula los meses disponibles
+      const reports = getReports();
+      const listaDiv = document.getElementById('listaHistorico');
+      const mesSeleccionado = document.getElementById('mesHistorico').value;
+      
+      const filteredReports = mesSeleccionado 
+          ? reports.filter(r => r.id.startsWith(mesSeleccionado)) 
+          : reports;
+
+      filteredReports.sort((a, b) => b.id.localeCompare(a.id));
+
+      if(filteredReports.length === 0){
+          listaDiv.innerHTML = "<p>No hay reportes para el mes seleccionado.</p>";
+          return;
+      }
+      
+      listaDiv.innerHTML = filteredReports.map(report => `
+          <div class="item-historico">
+              <div class="item-historico-header">
+                  <span><strong>${report.fechaSalida}</strong> - ${report.operario}</span>
+                  <span class="status-${report.status}">${report.status === 'synced' ? 'Enviado' : 'Pendiente'}</span>
+              </div>
+              <details>
+                  <summary>Ver detalles</summary>
+                  <p><strong>Ciclo-Sección:</strong> ${report.ciclo || 'N/A'} - ${report.seccion || 'N/A'}</p>
+                  <p><strong>Salida:</strong> ${report.horaSalida || '--:--'} | <strong>Inicio:</strong> ${report.horaInicio || '--:--'} | <strong>Regreso:</strong> ${report.horaRegreso || '--:--'} | <strong>Fin:</strong> ${report.horaFin || '--:--'}</p>
+              </details>
+          </div>
+      `).join('');
+  }
+
+  function updateSyncButtonVisibility() {
+      const reports = getReports();
+      const hasPending = reports.some(r => r.status === 'pending_sync');
+      document.getElementById('forceSyncBtn').style.display = hasPending ? 'block' : 'none';
+  }
+
 </script>
 <!-- =============================================================== -->
 <!-- ========= FIN DEL BLOQUE DE SCRIPT MODIFICADO ========= -->
