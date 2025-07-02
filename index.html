@@ -413,6 +413,31 @@ body {
     font-weight: bold;
     font-size: 20px;
   }
+  
+  /* (NUEVO) Estilos para el botón de borrado */
+  .item-historico-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* Espacio entre el estado y el botón */
+  }
+  .btn-delete-report {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 28px;
+      text-align: center;
+      transition: background-color 0.2s ease;
+  }
+  .btn-delete-report:hover {
+      background-color: #c82333;
+  }
+
 </style>
 <!-- FIN: ESTILOS MODIFICADOS -->
 </style><script>
@@ -531,7 +556,6 @@ function verificarInstalacion() {
   // --- CONSTANTES Y CONFIGURACIÓN ---
   const REPORTS_STORAGE_KEY = 'daily_reports_pamplona';
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
-  // (NUEVO) Clave para la caché del formulario
   const DAILY_REPORT_CACHE_KEY = 'daily_report_cache_pamplona';
 
   // Carga los datos desde los archivos JSON al iniciar la página.
@@ -539,7 +563,6 @@ function verificarInstalacion() {
     mostrarFechaHora();
     // La carga del historial ahora se hace al mostrar el formulario.
 
-    // Usamos Promise.all para cargar todos los archivos JSON a la vez.
     Promise.all([
       fetch('operarios.json').then(response => response.json()),
       fetch('ciclos.json').then(response => response.json()),
@@ -561,15 +584,13 @@ function verificarInstalacion() {
     });
   };
   
-  // --- (NUEVO) FUNCIÓN PARA GUARDAR LA CACHÉ DEL FORMULARIO ---
   function saveDailyReportCache() {
     const operario = document.getElementById("operario").value;
     const ciclo = document.getElementById("ciclo").value;
     const seccion = document.getElementById("seccion").value;
     
-    // Solo guardar si los campos principales están seleccionados
     if (operario && ciclo && seccion) {
-      const today = new Date().toISOString().slice(0, 10); // Formato YYYY-MM-DD
+      const today = new Date().toISOString().slice(0, 10);
       const cacheData = {
         date: today,
         operario: operario,
@@ -581,29 +602,24 @@ function verificarInstalacion() {
     }
   }
 
-  // --- (NUEVO) FUNCIÓN PARA CARGAR LA CACHÉ DEL FORMULARIO ---
   function loadDailyReportCache() {
     const cachedDataString = localStorage.getItem(DAILY_REPORT_CACHE_KEY);
-    if (!cachedDataString) return; // No hay caché, no hacer nada
+    if (!cachedDataString) return;
 
     const today = new Date().toISOString().slice(0, 10);
     const cachedData = JSON.parse(cachedDataString);
 
     if (cachedData.date === today) {
-      // Si la caché es de hoy, rellenar los campos
       document.getElementById('operario').value = cachedData.operario;
       document.getElementById('ciclo').value = cachedData.ciclo;
       
-      // Es crucial disparar el evento 'change' en el ciclo para que se carguen las secciones correspondientes
       const cicloSelect = document.getElementById('ciclo');
       const changeEvent = new Event('change');
       cicloSelect.dispatchEvent(changeEvent);
 
-      // Ahora que las secciones están cargadas, podemos seleccionar la correcta
       document.getElementById('seccion').value = cachedData.seccion;
       console.log('Datos del formulario cargados desde la caché.');
     } else {
-      // Si la caché es de un día anterior, limpiarla
       localStorage.removeItem(DAILY_REPORT_CACHE_KEY);
       console.log('Caché del formulario del día anterior eliminada.');
     }
@@ -652,10 +668,7 @@ function verificarInstalacion() {
   function mostrarFormulario() {
     document.getElementById('inicio').classList.add('hidden');
     document.getElementById('vistaReporte').classList.remove('hidden');
-    
-    // (MODIFICADO) Cargar datos desde la caché al mostrar el formulario
     loadDailyReportCache();
-    
     renderReportHistory();
     updateSyncButtonVisibility();
   }
@@ -786,17 +799,14 @@ function verificarInstalacion() {
       alert("Por favor, seleccione un Operario antes de reportar.");
       return;
     }
-
-    // (MODIFICADO) Guardar datos en caché al enviar reporte
     saveDailyReportCache();
-
     if (!navigator.geolocation) {
       alert("Tu navegador no permite geolocalización.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(async pos => {
-      const reporteTipo = tipo.toUpperCase(); // 'TXT' o 'INCAPACIDAD'
+      const reporteTipo = tipo.toUpperCase();
       const ciclo = reporteTipo;
       const seccion = '00';
       const horaFicticia = '00:00';
@@ -825,20 +835,14 @@ function verificarInstalacion() {
       }
       saveReports(reports);
 
-      const mapaCod = {
-        "0": "F", "1": "G", "2": "C", "3": "I", "4": "V",
-        "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J",
-        ".": "K", ",": "L", "-": "M"
-      };
+      const mapaCod = {"0": "F", "1": "G", "2": "C", "3": "I", "4": "V", "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J", ".": "K", ",": "L", "-": "M"};
       const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
       const lat = pos.coords.latitude.toFixed(7);
       const lon = pos.coords.longitude.toFixed(7);
       const codificado = codificarCoord(lat + "," + lon);
-      
       const titulo = `🚨 REPORTE ESPECIAL: ${reporteTipo}`;
       const fechaActual = new Date().toLocaleDateString();
       const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
       const mensaje = `${titulo}
 🗓 Fecha: ${fechaActual} ${codificado.slice(0, Math.floor(codificado.length / 2))}
 ⏰ Hora: ${horaActual} ${codificado.slice(Math.floor(codificado.length / 2))}
@@ -850,9 +854,7 @@ function verificarInstalacion() {
       ultimoMensajeGenerado = mensaje;
       const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
       window.open(url, "_blank");
-
       await submitReportToGoogleSheets(report);
-
     }, () => {
       alert("Favor activar GPS y DATOS para poder procesar el reporte.");
     });
@@ -868,61 +870,42 @@ function verificarInstalacion() {
       alert("Por favor complete los campos: Operario, Ciclo, Sección y Vía.");
       return;
     }
-
     if ((tipo === "inicio" || tipo === "fin") && (!operario || !via)) {
       alert("Por favor complete los campos: Operario y Vía.");
       return;
     }
-    
-    // (MODIFICADO) Guardar datos en caché al enviar reporte
     saveDailyReportCache();
-
     if (!navigator.geolocation) {
       alert("Tu navegador no permite geolocalización.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(async pos => {
-      const mapaCod = {
-        "0": "F", "1": "G", "2": "C", "3": "I", "4": "V",
-        "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J",
-        ".": "K", ",": "L", "-": "M"
-      };
+      const mapaCod = {"0": "F", "1": "G", "2": "C", "3": "I", "4": "V", "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J", ".": "K", ",": "L", "-": "M"};
       const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
       const lat = pos.coords.latitude.toFixed(7);
       const lon = pos.coords.longitude.toFixed(7);
       const codificado = codificarCoord(lat + "," + lon);
-
       const fecha = new Date().toLocaleDateString();
       const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
       let titulo = "";
       if (tipo === "salida") titulo = "🏍🔀 Traslado de salida";
       if (tipo === "regreso") titulo = "🏍↩️ Traslado de regreso";
       if (tipo === "inicio") titulo = "🧾 Inicio de labor";
       if (tipo === "fin") titulo = "🪫 Fin de labor";
-
       let mensaje = `${titulo}
 🗓 Fecha: ${fecha} ${codificado.slice(0, Math.floor(codificado.length / 2))}
 ⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length / 2))}
 👷‍♂️ Operario: ${operario}`;
       if (tipo === "salida" || tipo === "regreso") {
-        mensaje += `
-🔁 Ciclo: ${ciclo}
-📍 Sección: ${seccion}
-🛣️ Vía: ${via}`;
+        mensaje += `\n🔁 Ciclo: ${ciclo}\n📍 Sección: ${seccion}\n🛣️ Vía: ${via}`;
       } else {
-        mensaje += `
-${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}`;
+        mensaje += `\n${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}`;
       }
-
       ultimoMensajeGenerado = mensaje;
-      
       await guardarEstadoReporte(tipo, operario, ciclo, seccion);
-      
       const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
       window.open(url, "_blank");
-
       document.getElementById("via").value = "";
     }, () => {
       alert("Favor activar GPS y DATOS para poder pasar a la aplicacion de WhatsApp");
@@ -940,27 +923,47 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
     navigator.clipboard.writeText(ultimoMensajeGenerado).then(() => {
       alert("Reporte copiado al portapapeles. Puedes pegarlo manualmente en WhatsApp.");
     }).catch(() => {
-      alert("No se pudo copiar el texto. Intenta manualmente.");
+      alert("No se pudo copiar el texto. Intenta manually.");
     });
   }
   
+  // (NUEVO) Función para solicitar y confirmar el borrado de un reporte
+  function solicitarBorradoReporte(reportId) {
+    if (confirm("¿Está seguro de que desea eliminar este reporte? Esta acción no se puede deshacer.")) {
+        let reports = getReports();
+        const updatedReports = reports.filter(r => r.id !== reportId);
+        saveReports(updatedReports);
+        console.log(`Reporte ${reportId} ha sido eliminado.`);
+    }
+  }
+
+  // (MODIFICADO) Renderizado del historial para incluir el botón de borrado
   function renderReportHistory() {
       const reports = getReports();
       const listaDiv = document.getElementById('listaHistorico');
-      const filteredReports = reports; // Mostrar todos los reportes
+      
+      reports.sort((a, b) => b.id.localeCompare(a.id));
 
-      filteredReports.sort((a, b) => b.id.localeCompare(a.id));
-
-      if(filteredReports.length === 0){
+      if(reports.length === 0){
           listaDiv.innerHTML = "<p>No hay reportes guardados.</p>";
           return;
       }
       
-      listaDiv.innerHTML = filteredReports.map(report => `
+      listaDiv.innerHTML = reports.map(report => {
+          // Determinar si se muestra el botón de borrado
+          let deleteButtonHtml = '';
+          if (report.status !== 'synced') {
+              deleteButtonHtml = `<button class="btn-delete-report" onclick="solicitarBorradoReporte('${report.id}')">🗑️</button>`;
+          }
+          
+          return `
           <div class="item-historico">
               <div class="item-historico-header">
                   <span><strong>${report.fechaSalida}</strong> - ${report.operario}</span>
-                  <span class="status-${report.status}">${report.status === 'synced' ? 'Enviado' : (report.status === 'pending_sync' ? 'Pendiente' : 'En Progreso')}</span>
+                  <div class="item-historico-actions">
+                    <span class="status-${report.status}">${report.status === 'synced' ? 'Enviado' : (report.status === 'pending_sync' ? 'Pendiente' : 'En Progreso')}</span>
+                    ${deleteButtonHtml}
+                  </div>
               </div>
               <details>
                   <summary>Ver detalles</summary>
@@ -968,7 +971,7 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
                   <p><strong>Salida:</strong> ${report.horaSalida || '--:--'} | <strong>Inicio:</strong> ${report.horaInicio || '--:--'} | <strong>Regreso:</strong> ${report.horaRegreso || '--:--'} | <strong>Fin:</strong> ${report.horaFin || '--:--'}</p>
               </details>
           </div>
-      `).join('');
+      `}).join('');
   }
 
   function updateSyncButtonVisibility() {
