@@ -635,35 +635,34 @@ function verificarInstalacion() {
   }
   
   // =================================================================
-  // FUNCIÓN CORREGIDA PARA EL ENVÍO A GOOGLE SHEETS
+  // FUNCIÓN CORREGIDA USANDO LA LÓGICA DE FORMDATA (MÉTODO PROBADO)
   // =================================================================
   async function submitReportToGoogleSheets(report) {
-    const dataToSend = {
-      operario: report.operario,
-      ciclo: report.ciclo || '',
-      seccion: report.seccion || '',
-      fechaSalida: report.fechaSalida,
-      horaSalida: report.horaSalida || '',
-      horaInicio: report.horaInicio || '',
-      horaRegreso: report.horaRegreso || '',
-      horaFin: report.horaFin || ''
-    };
+    // 1. Crear un objeto FormData
+    const formData = new FormData();
+
+    // 2. Añadir cada dato del reporte al FormData
+    formData.append('operario', report.operario || '');
+    formData.append('ciclo', report.ciclo || '');
+    formData.append('seccion', report.seccion || '');
+    formData.append('fechaSalida', report.fechaSalida || '');
+    formData.append('horaSalida', report.horaSalida || '');
+    formData.append('horaInicio', report.horaInicio || '');
+    formData.append('horaRegreso', report.horaRegreso || '');
+    formData.append('horaFin', report.horaFin || '');
 
     try {
-        const url = GOOGLE_SHEET_URL;
-        const response = await fetch(url, {
+        // 3. Enviar el FormData usando fetch. No se necesita 'headers' ni 'mode'.
+        const response = await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
-            mode: 'cors',
-            redirect: 'follow', 
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8',
-            },
-            body: JSON.stringify(dataToSend) 
+            body: formData,
         });
 
+        // 4. Procesar la respuesta del servidor
         const result = await response.json();
         
         if (result.status === 'success') {
+            // Si el script de Google confirma el éxito, actualizamos el estado
             const reports = getReports();
             const reportIndex = reports.findIndex(r => r.id === report.id);
             if (reportIndex > -1) {
@@ -673,11 +672,13 @@ function verificarInstalacion() {
                 alert('Reporte del día finalizado y enviado correctamente.');
             }
         } else {
+            // Si el script de Google reporta un error
             console.error('Error reportado por el script de Google:', result.message);
-            throw new Error('El script de Google devolvió un error: ' + (result.message || 'Error desconocido'));
+            throw new Error(result.message || 'Error desconocido del script.');
         }
     } catch (error) {
-        console.error('Error de red o CORS al enviar el reporte a Google Sheets:', error);
+        // Si hay un error de red (sin conexión, CORS, etc.)
+        console.error('Error de red al enviar el reporte a Google Sheets:', error);
         alert('No se pudo enviar el reporte (Error de red). Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
     }
   }
@@ -696,7 +697,6 @@ function verificarInstalacion() {
 
       for (const report of pendingReports) {
           await submitReportToGoogleSheets(report);
-          // Re-evaluamos el estado del reporte después del intento
           const updatedReports = getReports();
           const syncedReport = updatedReports.find(r => r.id === report.id);
           if(syncedReport && syncedReport.status === 'synced') {
@@ -767,7 +767,6 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
 
       ultimoMensajeGenerado = mensaje;
       
-      // Guardar el estado localmente ANTES de intentar enviar a WhatsApp
       await guardarEstadoReporte(tipo, operario, ciclo, seccion);
       
       const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
@@ -811,7 +810,7 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
   }
   
   function renderReportHistory() {
-      setupHistory(); // Recalcula los meses disponibles
+      setupHistory(); 
       const reports = getReports();
       const listaDiv = document.getElementById('listaHistorico');
       const mesSeleccionado = document.getElementById('mesHistorico').value;
