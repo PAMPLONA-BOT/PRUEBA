@@ -80,9 +80,15 @@ if ('serviceWorker' in navigator) {
       transition: background-color 0.3s ease, transform 0.3s ease;
     }
 
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       background-color: #45a049;
       transform: translateY(-3px);
+    }
+    
+    .btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+        color: #666666;
     }
 
     .btn-regresar {
@@ -136,6 +142,12 @@ if ('serviceWorker' in navigator) {
       border-radius: 6px;
       font-size: 16px;
       box-sizing: border-box;
+    }
+    
+    .form-group select:disabled,
+    .form-group input[type="text"]:disabled {
+        background-color: #e9e9e9;
+        cursor: not-allowed;
     }
 
     #cicloSeccion {
@@ -489,12 +501,12 @@ function verificarInstalacion() {
 </div>
 <div class="form-group">
 <label for="via">📝 Seleccione tipo de campo:</label>
-<select onchange="document.querySelector('label[for=via]').textContent = this.value + ':';">
+<select id="via-type-select" onchange="document.querySelector('label[for=via]').textContent = this.value + ':';">
 <option value="🛣️ Vía">🛣️ Vía</option>
 <option value="👨🏻 Primer usuario">👨🏻 Primer usuario</option>
 <option value="🏙 En">🏙 En</option>
 </select>
-<input id="via" placeholder="Ingrese dato segun reporte, la vía de traslado, primer usuario o lugar de finalizacion" type="text"/>
+<input id="via" placeholder="Ingrese dato segun reporte..." type="text"/>
 </div>
 <div class="btn-row">
 <button class="btn" onclick="enviarReporte('salida')">TRASLADO SALIDA</button>
@@ -535,9 +547,8 @@ function verificarInstalacion() {
   // Carga los datos desde los archivos JSON al iniciar la página.
   window.onload = function () {
     mostrarFechaHora();
-    // La carga del historial ahora se hace al mostrar el formulario.
-
-    // Usamos Promise.all para cargar todos los archivos JSON a la vez.
+    document.getElementById('operario').addEventListener('change', updateUIForWorkflowState);
+    
     Promise.all([
       fetch('operarios.json').then(response => response.json()),
       fetch('ciclos.json').then(response => response.json()),
@@ -552,6 +563,8 @@ function verificarInstalacion() {
         const secciones = seccionesPorCiclo[cicloSeleccionado] || [];
         llenarSelect("seccion", secciones);
       });
+      // Una vez cargados los operarios, actualizamos la UI
+      updateUIForWorkflowState();
     })
     .catch(error => {
       console.error("Error al cargar los datos de configuración:", error);
@@ -568,7 +581,79 @@ function verificarInstalacion() {
     localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
     renderReportHistory();
     updateSyncButtonVisibility();
+    updateUIForWorkflowState(); // Actualiza la UI cada vez que se guardan los reportes
   }
+  
+  // --- LÓGICA DE WORKFLOW Y UI ---
+  function updateUIForWorkflowState() {
+      // Obtener todos los elementos de la UI una vez
+      const ui = {
+          operario: document.getElementById("operario"),
+          ciclo: document.getElementById("ciclo"),
+          seccion: document.getElementById("seccion"),
+          viaTypeSelect: document.getElementById("via-type-select"),
+          btnSalida: document.querySelector("button[onclick=\"enviarReporte('salida')\"]"),
+          btnRegreso: document.querySelector("button[onclick=\"enviarReporte('regreso')\"]"),
+          btnInicio: document.querySelector("button[onclick=\"enviarReporte('inicio')\"]"),
+          btnFin: document.querySelector("button[onclick=\"enviarReporte('fin')\"]"),
+          btnTxt: document.querySelector("button[onclick=\"enviarReporteEspecial('txt')\"]"),
+          btnIncapacidad: document.querySelector("button[onclick=\"enviarReporteEspecial('incapacidad')\"]")
+      };
+
+      const resetUI = () => {
+          [ui.operario, ui.ciclo, ui.seccion].forEach(el => el.disabled = false);
+          [ui.btnSalida, ui.btnTxt, ui.btnIncapacidad].forEach(btn => btn.disabled = false);
+          [ui.btnInicio, ui.btnRegreso, ui.btnFin].forEach(btn => btn.disabled = true);
+          ui.viaTypeSelect.value = "🛣️ Vía";
+          ui.viaTypeSelect.dispatchEvent(new Event('change'));
+      };
+      
+      const lockUIForDay = () => {
+          [ui.operario, ui.ciclo, ui.seccion].forEach(el => el.disabled = true);
+          Object.values(ui).filter(el => el.tagName === 'BUTTON').forEach(btn => btn.disabled = true);
+      };
+
+      const operarioSeleccionado = ui.operario.value;
+      if (!operarioSeleccionado) {
+          resetUI();
+          return;
+      }
+
+      const reports = getReports();
+      const reportId = `${new Date().toISOString().slice(0, 10)}-${operarioSeleccionado}`;
+      const report = reports.find(r => r.id === reportId);
+
+      if (!report || report.status === 'synced' || report.status === 'pending_sync') {
+          if (report && (report.ciclo === 'TXT' || report.ciclo === 'INCAPACIDAD')) {
+              lockUIForDay();
+              ui.operario.disabled = false; // Permitir cambiar de operario
+          } else {
+              resetUI();
+          }
+          return;
+      }
+
+      // --- Si hay un reporte en progreso ('in_progress') ---
+      [ui.operario, ui.ciclo, ui.seccion].forEach(el => el.disabled = true);
+      ui.ciclo.value = report.ciclo;
+      if(report.seccion) ui.seccion.value = report.seccion;
+
+      [ui.btnSalida, ui.btnInicio, ui.btnRegreso, ui.btnFin, ui.btnTxt, ui.btnIncapacidad].forEach(btn => btn.disabled = true);
+
+      if (report.horaRegreso) { // Listo para FIN
+          ui.btnFin.disabled = false;
+          ui.viaTypeSelect.value = "🏙 En";
+      } else if (report.horaInicio) { // Listo para REGRESO
+          ui.btnRegreso.disabled = false;
+          ui.viaTypeSelect.value = "🛣️ Vía";
+      } else if (report.horaSalida) { // Listo para INICIO
+          ui.btnInicio.disabled = false;
+          ui.viaTypeSelect.value = "👨🏻 Primer usuario";
+      }
+      
+      ui.viaTypeSelect.dispatchEvent(new Event('change'));
+  }
+
 
   // --- FUNCIONES DE LA INTERFAZ DE USUARIO (UI) ---
   function llenarSelect(id, valores) {
@@ -603,6 +688,7 @@ function verificarInstalacion() {
     document.getElementById('vistaReporte').classList.remove('hidden');
     renderReportHistory();
     updateSyncButtonVisibility();
+    updateUIForWorkflowState(); // Asegura que la UI refleje el estado actual
   }
 
   function regresarAPrincipal() {
@@ -632,6 +718,12 @@ function verificarInstalacion() {
           };
           reports.push(report);
       }
+      
+      // No modificar el estado si ya está finalizado
+      if(report.status === 'synced' || report.status === 'pending_sync') {
+          console.log("El reporte de hoy para este operario ya fue finalizado.");
+          return;
+      }
 
       switch(tipo) {
           case 'salida':
@@ -647,11 +739,11 @@ function verificarInstalacion() {
               break;
           case 'fin':
               report.horaFin = hora;
-              report.status = 'pending_sync';
+              report.status = 'pending_sync'; // Cambia a pendiente para sincronizar
               break;
       }
 
-      saveReports(reports);
+      saveReports(reports); // saveReports ahora llama a updateUI
       
       if (tipo === 'fin') {
           await submitReportToGoogleSheets(report);
@@ -686,16 +778,20 @@ function verificarInstalacion() {
             const reportIndex = reports.findIndex(r => r.id === report.id);
             if (reportIndex > -1) {
                 reports[reportIndex].status = 'synced';
-                saveReports(reports);
+                saveReports(reports); // Esto actualizará la UI
                 console.log('Reporte sincronizado con éxito:', report.id);
-                alert('Reporte del día finalizado y enviado correctamente.');
+                if (report.ciclo !== 'TXT' && report.ciclo !== 'INCAPACIDAD') {
+                    alert('Reporte del día finalizado y enviado correctamente.');
+                }
             }
         } else {
             throw new Error(result.message || 'El script de Google devolvió un error.');
         }
     } catch (error) {
         console.error('Error al enviar el reporte a Google Sheets:', error);
-        alert('No se pudo enviar el reporte. Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
+        if (report.status !== 'synced') { // Solo mostrar si no se sincronizó
+            alert('No se pudo enviar el reporte. Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
+        }
     }
   }
 
@@ -712,10 +808,11 @@ function verificarInstalacion() {
       let successCount = 0;
 
       for (const report of pendingReports) {
+          const initialStatus = report.status;
           await submitReportToGoogleSheets(report);
-          const updatedReports = getReports();
-          const syncedReport = updatedReports.find(r => r.id === report.id);
-          if(syncedReport && syncedReport.status === 'synced') {
+          // Recargamos el estado del reporte desde el storage para ver si cambió
+          const updatedReport = getReports().find(r => r.id === report.id);
+          if(updatedReport && updatedReport.status === 'synced' && initialStatus !== 'synced') {
               successCount++;
           }
       }
@@ -755,17 +852,12 @@ function verificarInstalacion() {
           horaInicio: horaFicticia,
           horaRegreso: horaFicticia,
           horaFin: horaFicticia,
-          status: 'pending_sync'
+          status: 'pending_sync' // Inicia como pendiente
       };
       
       const reports = getReports();
-      const existingIndex = reports.findIndex(r => r.id === report.id);
-      if (existingIndex > -1) {
-          reports[existingIndex] = report;
-      } else {
-          reports.push(report);
-      }
-      saveReports(reports);
+      reports.push(report); // Añade el nuevo reporte especial
+      saveReports(reports); // Guarda y actualiza la UI, bloqueando los botones
 
       const mapaCod = {
         "0": "F", "1": "G", "2": "C", "3": "I", "4": "V",
@@ -793,7 +885,7 @@ function verificarInstalacion() {
       const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
       window.open(url, "_blank");
 
-      await submitReportToGoogleSheets(report);
+      await submitReportToGoogleSheets(report); // Intenta enviar inmediatamente
 
     }, () => {
       alert("Favor activar GPS y DATOS para poder procesar el reporte.");
@@ -806,13 +898,13 @@ function verificarInstalacion() {
     const seccion = document.getElementById("seccion").value;
     const via = document.getElementById("via").value.trim();
 
-    if ((tipo === "salida" || tipo === "regreso") && (!operario || !ciclo || !seccion || !via)) {
+    if ((tipo === "salida") && (!operario || !ciclo || !seccion || !via)) {
       alert("Por favor complete los campos: Operario, Ciclo, Sección y Vía.");
       return;
     }
 
-    if ((tipo === "inicio" || tipo === "fin") && (!operario || !via)) {
-      alert("Por favor complete los campos: Operario y Vía.");
+    if ((tipo === "inicio" || tipo === "regreso" || tipo === "fin") && (!operario || !via)) {
+      alert("Por favor complete el campo de texto requerido para este reporte.");
       return;
     }
 
@@ -845,13 +937,20 @@ function verificarInstalacion() {
 🗓 Fecha: ${fecha} ${codificado.slice(0, Math.floor(codificado.length / 2))}
 ⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length / 2))}
 👷‍♂️ Operario: ${operario}`;
+      
+      const currentReport = getReports().find(r => r.id === `${new Date().toISOString().slice(0, 10)}-${operario}`);
+      const reportCiclo = (tipo === "salida") ? ciclo : (currentReport ? currentReport.ciclo : "");
+      const reportSeccion = (tipo === "salida") ? seccion : (currentReport ? currentReport.seccion : "");
+
       if (tipo === "salida" || tipo === "regreso") {
         mensaje += `
-🔁 Ciclo: ${ciclo}
-📍 Sección: ${seccion}
+🔁 Ciclo: ${reportCiclo}
+📍 Sección: ${reportSeccion}
 🛣️ Vía: ${via}`;
       } else {
         mensaje += `
+🔁 Ciclo: ${reportCiclo}
+📍 Sección: ${reportSeccion}
 ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}`;
       }
 
@@ -886,16 +985,16 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
   function renderReportHistory() {
       const reports = getReports();
       const listaDiv = document.getElementById('listaHistorico');
-      const filteredReports = reports; // Mostrar todos los reportes
+      
+      // Filtrar y ordenar: más recientes primero
+      reports.sort((a, b) => new Date(b.id.split('-').slice(0,3).join('-')) - new Date(a.id.split('-').slice(0,3).join('-')));
 
-      filteredReports.sort((a, b) => b.id.localeCompare(a.id));
-
-      if(filteredReports.length === 0){
+      if(reports.length === 0){
           listaDiv.innerHTML = "<p>No hay reportes guardados.</p>";
           return;
       }
       
-      listaDiv.innerHTML = filteredReports.map(report => `
+      listaDiv.innerHTML = reports.map(report => `
           <div class="item-historico">
               <div class="item-historico-header">
                   <span><strong>${report.fechaSalida}</strong> - ${report.operario}</span>
