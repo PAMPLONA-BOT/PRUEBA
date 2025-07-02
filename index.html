@@ -1,5 +1,3 @@
---- START OF FILE index (15).html ---
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -393,6 +391,30 @@ body {
   box-sizing: border-box;
 }
 </style>
+<!-- INICIO: ESTILOS MODIFICADOS -->
+<style>
+  #vistaReporte .btn-row {
+    margin-bottom: 10px; /* Reducir margen inferior para juntar las filas */
+    gap: 10px;
+  }
+  #vistaReporte .btn-row .btn {
+    padding: 10px; /* Hacer el botón más pequeño */
+    font-size: 14px; /* Reducir el texto */
+    margin: 0; /* Eliminar margen vertical */
+  }
+  /* Mejora visual del área de historial */
+  #reporteHistorico {
+    border-top: 2px solid #00796b; /* Borde más grueso y con color del tema */
+    margin-top: 30px; /* Más espacio superior */
+    padding-top: 20px;
+  }
+  #reporteHistorico h3 {
+    color: #00796b; /* Color del tema para el título */
+    font-weight: bold;
+    font-size: 20px;
+  }
+</style>
+<!-- FIN: ESTILOS MODIFICADOS -->
 </style><script>
 document.addEventListener("DOMContentLoaded", function () {
   const app = document.getElementById('interfazPrincipal');
@@ -493,10 +515,6 @@ function verificarInstalacion() {
 <!-- INICIO: SECCIÓN DE HISTORIAL Y SINCRONIZACIÓN -->
 <div id="reporteHistorico">
     <h3>Historial de Reportes Diarios</h3>
-    <div class="form-group">
-        <label for="mesHistorico">Filtrar por Mes:</label>
-        <select id="mesHistorico" onchange="renderReportHistory()"></select>
-    </div>
     <div id="listaHistorico">No hay reportes guardados.</div>
 </div>
 <button class="btn" id="forceSyncBtn" onclick="forceSyncPending()" style="display: none; margin-top: 15px;">⚠️ FORZAR ENVÍO DE PENDIENTES</button>
@@ -517,7 +535,7 @@ function verificarInstalacion() {
   // Carga los datos desde los archivos JSON al iniciar la página.
   window.onload = function () {
     mostrarFechaHora();
-    setupHistory();
+    // La carga del historial ahora se hace al mostrar el formulario.
 
     // Usamos Promise.all para cargar todos los archivos JSON a la vez.
     Promise.all([
@@ -640,9 +658,6 @@ function verificarInstalacion() {
       }
   }
   
-  // =================================================================
-  // FUNCIÓN CORREGIDA FINAL - USANDO FORMDATA (MÉTODO PROBADO)
-  // =================================================================
   async function submitReportToGoogleSheets(report) {
     const formData = new FormData();
     formData.append('operario', report.operario || '');
@@ -658,11 +673,8 @@ function verificarInstalacion() {
         const response = await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
             body: formData,
-            // No es necesario especificar 'headers' cuando se usa FormData,
-            // el navegador lo hace automáticamente.
         });
 
-        // Solo si la respuesta es OK (2xx), la procesamos.
         if (!response.ok) {
            throw new Error(`Respuesta del servidor no fue OK: ${response.status} ${response.statusText}`);
         }
@@ -871,36 +883,15 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
     });
   }
   
-  function setupHistory() {
-      const reports = getReports();
-      const mesSelect = document.getElementById('mesHistorico');
-      const meses = [...new Set(reports.map(r => r.id.substring(0, 7)))]; // YYYY-MM
-      meses.sort().reverse();
-      
-      mesSelect.innerHTML = '<option value="">Todos</option>';
-      meses.forEach(mes => {
-          const option = document.createElement('option');
-          option.value = mes;
-          const [year, month] = mes.split('-');
-          option.textContent = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-          mesSelect.appendChild(option);
-      });
-  }
-  
   function renderReportHistory() {
-      setupHistory(); 
       const reports = getReports();
       const listaDiv = document.getElementById('listaHistorico');
-      const mesSeleccionado = document.getElementById('mesHistorico').value;
-      
-      const filteredReports = mesSeleccionado 
-          ? reports.filter(r => r.id.startsWith(mesSeleccionado)) 
-          : reports;
+      const filteredReports = reports; // Mostrar todos los reportes
 
       filteredReports.sort((a, b) => b.id.localeCompare(a.id));
 
       if(filteredReports.length === 0){
-          listaDiv.innerHTML = "<p>No hay reportes para el mes seleccionado.</p>";
+          listaDiv.innerHTML = "<p>No hay reportes guardados.</p>";
           return;
       }
       
