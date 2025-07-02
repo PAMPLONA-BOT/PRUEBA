@@ -506,10 +506,6 @@ function verificarInstalacion() {
 <script>
   // --- CONSTANTES Y CONFIGURACIÓN ---
   const REPORTS_STORAGE_KEY = 'daily_reports_pamplona';
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // !!  IMPORTANTE: REEMPLAZA ESTA URL CON LA URL DE TU SCRIPT DE GOOGLE     !!
-  // !!  El script debe estar implementado para aceptar peticiones POST.      !!
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
 
   // Carga los datos desde los archivos JSON al iniciar la página.
@@ -638,44 +634,52 @@ function verificarInstalacion() {
       }
   }
   
+  // =================================================================
+  // FUNCIÓN CORREGIDA PARA EL ENVÍO A GOOGLE SHEETS
+  // =================================================================
   async function submitReportToGoogleSheets(report) {
-      const dataToSend = {
-        operario: report.operario,
-        ciclo: report.ciclo || '',
-        seccion: report.seccion || '',
-        fechaSalida: report.fechaSalida,
-        horaSalida: report.horaSalida || '',
-        horaInicio: report.horaInicio || '',
-        horaRegreso: report.horaRegreso || '',
-        horaFin: report.horaFin || ''
-      };
+    const dataToSend = {
+      operario: report.operario,
+      ciclo: report.ciclo || '',
+      seccion: report.seccion || '',
+      fechaSalida: report.fechaSalida,
+      horaSalida: report.horaSalida || '',
+      horaInicio: report.horaInicio || '',
+      horaRegreso: report.horaRegreso || '',
+      horaFin: report.horaFin || ''
+    };
 
-      try {
-          const response = await fetch(GOOGLE_SHEET_URL, {
-              method: 'POST',
-              body: new URLSearchParams(dataToSend) 
-          });
+    try {
+        const url = GOOGLE_SHEET_URL;
+        const response = await fetch(url, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow', 
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify(dataToSend) 
+        });
 
-          if (!response.ok) throw new Error(`Error en la respuesta del servidor: ${response.statusText}`);
-          
-          const result = await response.json();
-          if (result.status === 'success') {
-              const reports = getReports();
-              const reportIndex = reports.findIndex(r => r.id === report.id);
-              if (reportIndex > -1) {
-                  reports[reportIndex].status = 'synced';
-                  saveReports(reports);
-                  console.log('Reporte sincronizado con éxito:', report.id);
-                  alert('Reporte del día finalizado y enviado correctamente.');
-              }
-          } else {
-              throw new Error('El script de Google devolvió un error: ' + (result.message || 'Error desconocido'));
-          }
-      } catch (error) {
-          console.error('Error al enviar el reporte a Google Sheets:', error);
-          alert('No se pudo enviar el reporte. Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
-          // El estado ya es 'pending_sync', por lo que no hay que hacer nada más.
-      }
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            const reports = getReports();
+            const reportIndex = reports.findIndex(r => r.id === report.id);
+            if (reportIndex > -1) {
+                reports[reportIndex].status = 'synced';
+                saveReports(reports);
+                console.log('Reporte sincronizado con éxito:', report.id);
+                alert('Reporte del día finalizado y enviado correctamente.');
+            }
+        } else {
+            console.error('Error reportado por el script de Google:', result.message);
+            throw new Error('El script de Google devolvió un error: ' + (result.message || 'Error desconocido'));
+        }
+    } catch (error) {
+        console.error('Error de red o CORS al enviar el reporte a Google Sheets:', error);
+        alert('No se pudo enviar el reporte (Error de red). Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
+    }
   }
 
   async function forceSyncPending() {
@@ -827,7 +831,7 @@ ${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}
           <div class="item-historico">
               <div class="item-historico-header">
                   <span><strong>${report.fechaSalida}</strong> - ${report.operario}</span>
-                  <span class="status-${report.status}">${report.status === 'synced' ? 'Enviado' : 'Pendiente'}</span>
+                  <span class="status-${report.status}">${report.status === 'synced' ? 'Enviado' : (report.status === 'pending_sync' ? 'Pendiente' : 'En Progreso')}</span>
               </div>
               <details>
                   <summary>Ver detalles</summary>
