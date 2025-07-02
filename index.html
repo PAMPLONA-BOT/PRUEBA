@@ -394,31 +394,29 @@ body {
 <!-- INICIO: ESTILOS MODIFICADOS -->
 <style>
   #vistaReporte .btn-row {
-    margin-bottom: 10px; /* Reducir margen inferior para juntar las filas */
+    margin-bottom: 10px;
     gap: 10px;
   }
   #vistaReporte .btn-row .btn {
-    padding: 10px; /* Hacer el botón más pequeño */
-    font-size: 14px; /* Reducir el texto */
-    margin: 0; /* Eliminar margen vertical */
+    padding: 10px;
+    font-size: 14px;
+    margin: 0;
   }
-  /* Mejora visual del área de historial */
   #reporteHistorico {
-    border-top: 2px solid #00796b; /* Borde más grueso y con color del tema */
-    margin-top: 30px; /* Más espacio superior */
+    border-top: 2px solid #00796b;
+    margin-top: 30px;
     padding-top: 20px;
   }
   #reporteHistorico h3 {
-    color: #00796b; /* Color del tema para el título */
+    color: #00796b;
     font-weight: bold;
     font-size: 20px;
   }
   
-  /* (NUEVO) Estilos para el botón de borrado */
   .item-historico-actions {
       display: flex;
       align-items: center;
-      gap: 8px; /* Espacio entre el estado y el botón */
+      gap: 8px;
   }
   .btn-delete-report {
       background-color: #dc3545;
@@ -437,7 +435,6 @@ body {
   .btn-delete-report:hover {
       background-color: #c82333;
   }
-
 </style>
 <!-- FIN: ESTILOS MODIFICADOS -->
 </style><script>
@@ -459,7 +456,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mensaje.innerHTML = "<p>Esta aplicación solo funciona correctamente cuando es instalada en la pantalla de inicio.</p>";
   }
 
-  verificarInstalacion(); // por si ya está instalada
+  verificarInstalacion();
 });
 
 function verificarInstalacion() {
@@ -467,7 +464,6 @@ function verificarInstalacion() {
   if (isStandalone) {
     document.getElementById('pantallaInicio').style.display = 'none';
     const app = document.getElementById('interfazPrincipal');
-    const secundaria = document.getElementById('interfazSecundaria');
     if (app) app.style.display = 'block';
   }
 }
@@ -494,7 +490,6 @@ function verificarInstalacion() {
 <button class="btn" onclick="irAUrl('https://script.google.com/macros/s/AKfycbw2z6rVlBqlPU0drL9Rus_p_ORjVfl8iGQBL-gupoDio4Fq3ElbrqUILguiAtLYWpJZfg/exec', 'revisionEjecutada')">REVISIONES EJECUTADAS</button>
 <button class="btn" onclick="irAUrl('https://pamplona-bot.github.io/FIRMAS/', 'FIRMAS')">FIRMA FORMACIONES</button>
 <button class="btn" onclick="irAUrl('https://script.google.com/macros/s/AKfycbw-YQTef8VFk4KPc7S8iPnmMXxzaXLegyH8tLk-TqxNwROMi-mRqiUh8LwhQ2J1RbXFAA/exec', 'pendienteDescargas')">CONSULTA DE RUTA Y KML</button>
-<!--<button class="btn" onclick="irAUrl('https://script.google.com/macros/s/AKfycbyWqjGdR0kdTvBTiYMDZ0o14nSVOA8opZum-2goxP0gr9oztae9YTPGvxrx4c-ol7Es/exec', 'paginaPrueba')">PENDIENTE POR DESCARGAR</button>-->
 <button class="btn" onclick="irAUrl('https://pamplona-bot.github.io/PAMPLONA_ENRUTES/', 'enrutes')">ENRUTES</button>
 </div><!-- Vista de formulario --><div class="container hidden" id="vistaReporte">
 <h2>Reporte Diario</h2>
@@ -537,20 +532,18 @@ function verificarInstalacion() {
 <a class="btn hidden" href="#" id="whatsappLink" target="_blank">ENVIAR AL GRUPO DE WHATSAPP</a>
 <button class="btn" onclick="copiarReporte()">📋 PEGAR REPORTE</button>
 
-<!-- INICIO: SECCIÓN DE HISTORIAL Y SINCRONIZACIÓN -->
 <div id="reporteHistorico">
     <h3>Historial de Reportes Diarios</h3>
     <div id="listaHistorico">No hay reportes guardados.</div>
 </div>
 <button class="btn" id="forceSyncBtn" onclick="forceSyncPending()" style="display: none; margin-top: 15px;">⚠️ FORZAR ENVÍO DE PENDIENTES</button>
-<!-- FIN: SECCIÓN DE HISTORIAL Y SINCRONIZACIÓN -->
 
 </div><div class="footer">
 <p>Versión: 001</p>
 <p id="fechaHora"></p>
 </div>
 <!-- ================================================================= -->
-<!-- ========= INICIO DEL BLOQUE DE SCRIPT MODIFICADO ========= -->
+<!-- ===================== INICIO SCRIPT PRINCIPAL =================== -->
 <!-- ================================================================= -->
 <script>
   // --- CONSTANTES Y CONFIGURACIÓN ---
@@ -558,11 +551,8 @@ function verificarInstalacion() {
   const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhL9z2Ja7I0QFHn3nReY2NVR1AIn1_SJtei9FIifBLI7vy8PWz0cv_6Dr1Y61z9blcJA/exec';
   const DAILY_REPORT_CACHE_KEY = 'daily_report_cache_pamplona';
 
-  // Carga los datos desde los archivos JSON al iniciar la página.
   window.onload = function () {
     mostrarFechaHora();
-    // La carga del historial ahora se hace al mostrar el formulario.
-
     Promise.all([
       fetch('operarios.json').then(response => response.json()),
       fetch('ciclos.json').then(response => response.json()),
@@ -571,7 +561,6 @@ function verificarInstalacion() {
     .then(([operarios, ciclos, seccionesPorCiclo]) => {
       llenarSelect("operario", operarios);
       llenarSelect("ciclo", ciclos);
-
       document.getElementById("ciclo").addEventListener("change", function () {
         const cicloSeleccionado = this.value;
         const secciones = seccionesPorCiclo[cicloSeleccionado] || [];
@@ -588,45 +577,29 @@ function verificarInstalacion() {
     const operario = document.getElementById("operario").value;
     const ciclo = document.getElementById("ciclo").value;
     const seccion = document.getElementById("seccion").value;
-    
     if (operario && ciclo && seccion) {
       const today = new Date().toISOString().slice(0, 10);
-      const cacheData = {
-        date: today,
-        operario: operario,
-        ciclo: ciclo,
-        seccion: seccion
-      };
+      const cacheData = { date: today, operario, ciclo, seccion };
       localStorage.setItem(DAILY_REPORT_CACHE_KEY, JSON.stringify(cacheData));
-      console.log('Datos del formulario guardados en caché para hoy.');
     }
   }
 
   function loadDailyReportCache() {
     const cachedDataString = localStorage.getItem(DAILY_REPORT_CACHE_KEY);
     if (!cachedDataString) return;
-
     const today = new Date().toISOString().slice(0, 10);
     const cachedData = JSON.parse(cachedDataString);
-
     if (cachedData.date === today) {
       document.getElementById('operario').value = cachedData.operario;
-      document.getElementById('ciclo').value = cachedData.ciclo;
-      
       const cicloSelect = document.getElementById('ciclo');
-      const changeEvent = new Event('change');
-      cicloSelect.dispatchEvent(changeEvent);
-
+      cicloSelect.value = cachedData.ciclo;
+      cicloSelect.dispatchEvent(new Event('change'));
       document.getElementById('seccion').value = cachedData.seccion;
-      console.log('Datos del formulario cargados desde la caché.');
     } else {
       localStorage.removeItem(DAILY_REPORT_CACHE_KEY);
-      console.log('Caché del formulario del día anterior eliminada.');
     }
   }
 
-
-  // --- FUNCIONES DE MANEJO DE DATOS LOCALES ---
   function getReports() {
     return JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY)) || [];
   }
@@ -637,32 +610,21 @@ function verificarInstalacion() {
     updateSyncButtonVisibility();
   }
 
-  // --- FUNCIONES DE LA INTERFAZ DE USUARIO (UI) ---
   function llenarSelect(id, valores) {
     const select = document.getElementById(id);
     select.innerHTML = '<option value="">Seleccione</option>';
     valores.forEach(valor => {
-      const option = document.createElement("option");
-      option.value = valor;
-      option.textContent = valor;
-      select.appendChild(option);
+      select.add(new Option(valor, valor));
     });
   }
 
-  function irAUrl(url, boton) {
-    if (boton === 'validarUsuario') {
-      window.open(url, '_blank');
-    } else {
-      localStorage.setItem('lastVisited', url);
-      window.location.href = url;
-    }
+  function irAUrl(url) {
+    window.location.href = url;
   }
 
   function mostrarFechaHora() {
     const now = new Date();
-    const fecha = now.toLocaleDateString();
-    const hora = now.toLocaleTimeString();
-    document.getElementById('fechaHora').innerHTML = `Fecha y Hora: ${fecha} ${hora}`;
+    document.getElementById('fechaHora').innerHTML = `Fecha y Hora: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
   }
 
   function mostrarFormulario() {
@@ -678,271 +640,170 @@ function verificarInstalacion() {
     document.getElementById('inicio').classList.remove('hidden');
   }
 
-  // --- LÓGICA PRINCIPAL DE REPORTES ---
   async function guardarEstadoReporte(tipo, operario, ciclo, seccion) {
-      const reports = getReports();
-      const today = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const reportId = `${new Date().toISOString().slice(0, 10)}-${operario}`;
-      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-      let report = reports.find(r => r.id === reportId);
-
-      if (!report) {
-          if (tipo !== 'salida') {
-              alert('Debe iniciar con "TRASLADO SALIDA" para crear el reporte del día.');
-              return;
-          }
-          report = {
-              id: reportId,
-              operario: operario,
-              fechaSalida: today,
-              status: 'in_progress'
-          };
-          reports.push(report);
+    const reports = getReports();
+    const today = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const reportId = `${new Date().toISOString().slice(0, 10)}-${operario}`;
+    const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    let report = reports.find(r => r.id === reportId);
+    if (!report) {
+      if (tipo !== 'salida') {
+        alert('Debe iniciar con "TRASLADO SALIDA" para crear el reporte del día.');
+        return false;
       }
-
-      switch(tipo) {
-          case 'salida':
-              report.ciclo = ciclo;
-              report.seccion = seccion;
-              report.horaSalida = hora;
-              break;
-          case 'inicio':
-              report.horaInicio = hora;
-              break;
-          case 'regreso':
-              report.horaRegreso = hora;
-              break;
-          case 'fin':
-              report.horaFin = hora;
-              report.status = 'pending_sync';
-              break;
-      }
-
-      saveReports(reports);
-      
-      if (tipo === 'fin') {
-          await submitReportToGoogleSheets(report);
-      }
+      report = { id: reportId, operario, fechaSalida: today, status: 'in_progress' };
+      reports.push(report);
+    }
+    switch(tipo) {
+      case 'salida': report.ciclo = ciclo; report.seccion = seccion; report.horaSalida = hora; break;
+      case 'inicio': report.horaInicio = hora; break;
+      case 'regreso': report.horaRegreso = hora; break;
+      case 'fin': report.horaFin = hora; report.status = 'pending_sync'; break;
+    }
+    saveReports(reports);
+    if (tipo === 'fin') await submitReportToGoogleSheets(report);
+    return true;
   }
   
   async function submitReportToGoogleSheets(report) {
     const formData = new FormData();
-    formData.append('operario', report.operario || '');
-    formData.append('ciclo', report.ciclo || '');
-    formData.append('seccion', report.seccion || '');
-    formData.append('fechaSalida', report.fechaSalida || '');
-    formData.append('horaSalida', report.horaSalida || '');
-    formData.append('horaInicio', report.horaInicio || '');
-    formData.append('horaRegreso', report.horaRegreso || '');
-    formData.append('horaFin', report.horaFin || '');
-
+    Object.keys(report).forEach(key => formData.append(key, report[key] || ''));
     try {
-        const response = await fetch(GOOGLE_SHEET_URL, {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) {
-           throw new Error(`Respuesta del servidor no fue OK: ${response.status} ${response.statusText}`);
+      const response = await fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`Respuesta del servidor no OK: ${response.statusText}`);
+      const result = await response.json();
+      if (result.status === 'success') {
+        const reports = getReports();
+        const reportIndex = reports.findIndex(r => r.id === report.id);
+        if (reportIndex > -1) {
+          reports[reportIndex].status = 'synced';
+          saveReports(reports);
+          alert('Reporte del día finalizado y enviado correctamente.');
         }
-
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            const reports = getReports();
-            const reportIndex = reports.findIndex(r => r.id === report.id);
-            if (reportIndex > -1) {
-                reports[reportIndex].status = 'synced';
-                saveReports(reports);
-                console.log('Reporte sincronizado con éxito:', report.id);
-                alert('Reporte del día finalizado y enviado correctamente.');
-            }
-        } else {
-            throw new Error(result.message || 'El script de Google devolvió un error.');
-        }
+      } else {
+        throw new Error(result.message || 'Error desconocido del script de Google.');
+      }
     } catch (error) {
-        console.error('Error al enviar el reporte a Google Sheets:', error);
-        alert('No se pudo enviar el reporte. Quedó guardado como pendiente. Podrás forzar el envío más tarde.');
+      console.error('Error al enviar el reporte a Google Sheets:', error);
+      alert('No se pudo enviar el reporte. Quedó guardado como pendiente.');
     }
   }
 
   async function forceSyncPending() {
-      const reports = getReports();
-      const pendingReports = reports.filter(r => r.status === 'pending_sync');
-      
-      if (pendingReports.length === 0) {
-          alert("No hay reportes pendientes para enviar.");
-          return;
-      }
-
-      alert(`Iniciando envío de ${pendingReports.length} reporte(s) pendiente(s).`);
-      let successCount = 0;
-
-      for (const report of pendingReports) {
-          await submitReportToGoogleSheets(report);
-          const updatedReports = getReports();
-          const syncedReport = updatedReports.find(r => r.id === report.id);
-          if(syncedReport && syncedReport.status === 'synced') {
-              successCount++;
-          }
-      }
-
-      alert(`${successCount} de ${pendingReports.length} reporte(s) fueron enviados con éxito.`);
-      renderReportHistory();
-      updateSyncButtonVisibility();
-  }
-
-  async function enviarReporteEspecial(tipo) {
-    const operario = document.getElementById("operario").value;
-    if (!operario) {
-      alert("Por favor, seleccione un Operario antes de reportar.");
-      return;
-    }
-    saveDailyReportCache();
-    if (!navigator.geolocation) {
-      alert("Tu navegador no permite geolocalización.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const reporteTipo = tipo.toUpperCase();
-      const ciclo = reporteTipo;
-      const seccion = '00';
-      const horaFicticia = '00:00';
-      const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const reportId = `${new Date().toISOString().slice(0, 10)}-${operario}`;
-      
-      const report = {
-          id: reportId,
-          operario: operario,
-          fechaSalida: fecha,
-          ciclo: ciclo,
-          seccion: seccion,
-          horaSalida: horaFicticia,
-          horaInicio: horaFicticia,
-          horaRegreso: horaFicticia,
-          horaFin: horaFicticia,
-          status: 'pending_sync'
-      };
-      
-      const reports = getReports();
-      const existingIndex = reports.findIndex(r => r.id === report.id);
-      if (existingIndex > -1) {
-          reports[existingIndex] = report;
-      } else {
-          reports.push(report);
-      }
-      saveReports(reports);
-
-      const mapaCod = {"0": "F", "1": "G", "2": "C", "3": "I", "4": "V", "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J", ".": "K", ",": "L", "-": "M"};
-      const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
-      const lat = pos.coords.latitude.toFixed(7);
-      const lon = pos.coords.longitude.toFixed(7);
-      const codificado = codificarCoord(lat + "," + lon);
-      const titulo = `🚨 REPORTE ESPECIAL: ${reporteTipo}`;
-      const fechaActual = new Date().toLocaleDateString();
-      const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const mensaje = `${titulo}
-🗓 Fecha: ${fechaActual} ${codificado.slice(0, Math.floor(codificado.length / 2))}
-⏰ Hora: ${horaActual} ${codificado.slice(Math.floor(codificado.length / 2))}
-👷‍♂️ Operario: ${operario}
-📝 Motivo: ${reporteTipo}
-🔁 Ciclo: ${ciclo}
-📍 Sección: ${seccion}`;
-
-      ultimoMensajeGenerado = mensaje;
-      const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
-      window.open(url, "_blank");
+    const pendingReports = getReports().filter(r => r.status === 'pending_sync');
+    if (pendingReports.length === 0) return alert("No hay reportes pendientes.");
+    alert(`Iniciando envío de ${pendingReports.length} reporte(s) pendiente(s).`);
+    let successCount = 0;
+    for (const report of pendingReports) {
       await submitReportToGoogleSheets(report);
-    }, () => {
-      alert("Favor activar GPS y DATOS para poder procesar el reporte.");
-    });
+      if (getReports().find(r => r.id === report.id)?.status === 'synced') {
+        successCount++;
+      }
+    }
+    alert(`${successCount} de ${pendingReports.length} reporte(s) enviados.`);
+    renderReportHistory();
+    updateSyncButtonVisibility();
   }
 
-  function enviarReporte(tipo) {
+  async function enviarReporteBase(generarMensaje, guardarDatos) {
     const operario = document.getElementById("operario").value;
     const ciclo = document.getElementById("ciclo").value;
     const seccion = document.getElementById("seccion").value;
     const via = document.getElementById("via").value.trim();
 
-    if ((tipo === "salida" || tipo === "regreso") && (!operario || !ciclo || !seccion || !via)) {
-      alert("Por favor complete los campos: Operario, Ciclo, Sección y Vía.");
-      return;
+    if (!operario) return alert("Por favor seleccione un Operario.");
+    if (guardarDatos) {
+        if ((guardarDatos.tipo === "salida" || guardarDatos.tipo === "regreso") && (!ciclo || !seccion || !via)) {
+            return alert("Por favor complete Operario, Ciclo, Sección y Vía.");
+        }
+        if ((guardarDatos.tipo === "inicio" || guardarDatos.tipo === "fin") && !via) {
+            return alert("Por favor complete Operario y el campo correspondiente.");
+        }
     }
-    if ((tipo === "inicio" || tipo === "fin") && (!operario || !via)) {
-      alert("Por favor complete los campos: Operario y Vía.");
-      return;
-    }
+    
     saveDailyReportCache();
-    if (!navigator.geolocation) {
-      alert("Tu navegador no permite geolocalización.");
-      return;
-    }
+    if (!navigator.geolocation) return alert("Geolocalización no disponible.");
 
     navigator.geolocation.getCurrentPosition(async pos => {
-      const mapaCod = {"0": "F", "1": "G", "2": "C", "3": "I", "4": "V", "5": "A", "6": "B", "7": "H", "8": "Z", "9": "J", ".": "K", ",": "L", "-": "M"};
-      const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
-      const lat = pos.coords.latitude.toFixed(7);
-      const lon = pos.coords.longitude.toFixed(7);
-      const codificado = codificarCoord(lat + "," + lon);
-      const fecha = new Date().toLocaleDateString();
-      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      let titulo = "";
-      if (tipo === "salida") titulo = "🏍🔀 Traslado de salida";
-      if (tipo === "regreso") titulo = "🏍↩️ Traslado de regreso";
-      if (tipo === "inicio") titulo = "🧾 Inicio de labor";
-      if (tipo === "fin") titulo = "🪫 Fin de labor";
-      let mensaje = `${titulo}
-🗓 Fecha: ${fecha} ${codificado.slice(0, Math.floor(codificado.length / 2))}
-⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length / 2))}
-👷‍♂️ Operario: ${operario}`;
-      if (tipo === "salida" || tipo === "regreso") {
-        mensaje += `\n🔁 Ciclo: ${ciclo}\n📍 Sección: ${seccion}\n🛣️ Vía: ${via}`;
-      } else {
-        mensaje += `\n${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${via}`;
+      if (guardarDatos && !(await guardarEstadoReporte(guardarDatos.tipo, operario, ciclo, seccion))) {
+        return; // Detener si guardarEstadoReporte falló
       }
+      
+      const mensaje = generarMensaje(pos, { operario, ciclo, seccion, via });
       ultimoMensajeGenerado = mensaje;
-      await guardarEstadoReporte(tipo, operario, ciclo, seccion);
-      const url = "https://wa.me/?text=" + encodeURIComponent(mensaje);
-      window.open(url, "_blank");
+      window.open("https://wa.me/?text=" + encodeURIComponent(mensaje), "_blank");
       document.getElementById("via").value = "";
-    }, () => {
-      alert("Favor activar GPS y DATOS para poder pasar a la aplicacion de WhatsApp");
-    });
+
+    }, () => alert("Favor activar GPS y DATOS para enviar el reporte."));
+  }
+  
+  function enviarReporte(tipo) {
+    const generarMensaje = (pos, data) => {
+        const mapaCod = {"0":"F","1":"G","2":"C","3":"I","4":"V","5":"A","6":"B","7":"H","8":"Z","9":"J",".":"K",",":"L","-":"M"};
+        const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
+        const codificado = codificarCoord(pos.coords.latitude.toFixed(7) + "," + pos.coords.longitude.toFixed(7));
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const titulos = { salida: "🏍🔀 Traslado de salida", regreso: "🏍↩️ Traslado de regreso", inicio: "🧾 Inicio de labor", fin: "🪫 Fin de labor" };
+        let mensaje = `${titulos[tipo]}\n🗓 Fecha: ${new Date().toLocaleDateString()} ${codificado.slice(0, Math.floor(codificado.length/2))}\n⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length/2))}\n👷‍♂️ Operario: ${data.operario}`;
+        if (tipo === "salida" || tipo === "regreso") {
+            mensaje += `\n🔁 Ciclo: ${data.ciclo}\n📍 Sección: ${data.seccion}\n🛣️ Vía: ${data.via}`;
+        } else {
+            mensaje += `\n${document.querySelector("label[for=via]").textContent.replace(":", "")}: ${data.via}`;
+        }
+        return mensaje;
+    };
+    enviarReporteBase(generarMensaje, { tipo });
   }
 
-  // --- FUNCIONES DEL HISTORIAL ---
+  function enviarReporteEspecial(tipo) {
+     const generarMensaje = (pos, data) => {
+        const mapaCod = {"0":"F","1":"G","2":"C","3":"I","4":"V","5":"A","6":"B","7":"H","8":"Z","9":"J",".":"K",",":"L","-":"M"};
+        const codificarCoord = c => [...c].map(l => mapaCod[l] || '').join('');
+        const codificado = codificarCoord(pos.coords.latitude.toFixed(7) + "," + pos.coords.longitude.toFixed(7));
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const reporteTipo = tipo.toUpperCase();
+        return `🚨 REPORTE ESPECIAL: ${reporteTipo}\n🗓 Fecha: ${new Date().toLocaleDateString()} ${codificado.slice(0, Math.floor(codificado.length/2))}\n⏰ Hora: ${hora} ${codificado.slice(Math.floor(codificado.length/2))}\n👷‍♂️ Operario: ${data.operario}\n📝 Motivo: ${reporteTipo}\n🔁 Ciclo: ${reporteTipo}\n📍 Sección: 00`;
+    };
+    enviarReporteBase(generarMensaje);
+    // Para reportes especiales, también se envía a Sheets inmediatamente.
+    const operario = document.getElementById("operario").value;
+    if (operario) {
+        const report = {
+            id: `${new Date().toISOString().slice(0, 10)}-${operario}`, operario,
+            fechaSalida: new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+            ciclo: tipo.toUpperCase(), seccion: '00', horaSalida: '00:00', horaInicio: '00:00', horaRegreso: '00:00', horaFin: '00:00',
+            status: 'pending_sync'
+        };
+        const reports = getReports();
+        const existingIndex = reports.findIndex(r => r.id === report.id);
+        if (existingIndex > -1) reports[existingIndex] = report; else reports.push(report);
+        saveReports(reports);
+        submitReportToGoogleSheets(report);
+    }
+  }
+
   let ultimoMensajeGenerado = "";
 
   function copiarReporte() {
-    if (!ultimoMensajeGenerado) {
-      alert("No hay reporte disponible para copiar. Por favor genera uno primero.");
-      return;
-    }
-    navigator.clipboard.writeText(ultimoMensajeGenerado).then(() => {
-      alert("Reporte copiado al portapapeles. Puedes pegarlo manualmente en WhatsApp.");
-    }).catch(() => {
-      alert("No se pudo copiar el texto. Intenta manually.");
-    });
+    if (!ultimoMensajeGenerado) return alert("No hay reporte para copiar.");
+    navigator.clipboard.writeText(ultimoMensajeGenerado)
+      .then(() => alert("Reporte copiado al portapapeles."))
+      .catch(() => alert("No se pudo copiar el texto."));
   }
   
-  // (NUEVO) Función para solicitar y confirmar el borrado de un reporte
   function solicitarBorradoReporte(reportId) {
-    if (confirm("¿Está seguro de que desea eliminar este reporte? Esta acción no se puede deshacer.")) {
-        let reports = getReports();
-        const updatedReports = reports.filter(r => r.id !== reportId);
-        saveReports(updatedReports);
-        console.log(`Reporte ${reportId} ha sido eliminado.`);
+    if (confirm("¿Está seguro de que desea eliminar este reporte?")) {
+        saveReports(getReports().filter(r => r.id !== reportId));
     }
   }
 
-  // (MODIFICADO) Renderizado del historial para incluir el botón de borrado
+  // (MODIFICADO) Renderizado del historial con orden por fecha
   function renderReportHistory() {
       const reports = getReports();
       const listaDiv = document.getElementById('listaHistorico');
       
-      reports.sort((a, b) => b.id.localeCompare(a.id));
+      // Ordenar por fecha descendente (más nuevo primero)
+      reports.sort((a, b) => new Date(b.id.slice(0, 10)) - new Date(a.id.slice(0, 10)));
 
       if(reports.length === 0){
           listaDiv.innerHTML = "<p>No hay reportes guardados.</p>";
@@ -950,11 +811,9 @@ function verificarInstalacion() {
       }
       
       listaDiv.innerHTML = reports.map(report => {
-          // Determinar si se muestra el botón de borrado
-          let deleteButtonHtml = '';
-          if (report.status !== 'synced') {
-              deleteButtonHtml = `<button class="btn-delete-report" onclick="solicitarBorradoReporte('${report.id}')">🗑️</button>`;
-          }
+          let deleteButtonHtml = report.status !== 'synced' 
+              ? `<button class="btn-delete-report" onclick="solicitarBorradoReporte('${report.id}')">🗑️</button>`
+              : '';
           
           return `
           <div class="item-historico">
@@ -975,32 +834,20 @@ function verificarInstalacion() {
   }
 
   function updateSyncButtonVisibility() {
-      const reports = getReports();
-      const hasPending = reports.some(r => r.status === 'pending_sync');
-      document.getElementById('forceSyncBtn').style.display = hasPending ? 'block' : 'none';
+      document.getElementById('forceSyncBtn').style.display = getReports().some(r => r.status === 'pending_sync') ? 'block' : 'none';
   }
-
 </script>
-<!-- =============================================================== -->
-<!-- ========= FIN DEL BLOQUE DE SCRIPT MODIFICADO ========= -->
-<!-- =============================================================== -->
-<button onclick="actualizarApp()" style="
-  display: block;
-  margin: 20px auto;
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #ffc107;
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-">🔁 Actualizar desde servidor App </button><script>
+<!-- ================================================================= -->
+<!-- ====================== FIN SCRIPT PRINCIPAL ===================== -->
+<!-- ================================================================= -->
+<button onclick="actualizarApp()" style="display: block; margin: 20px auto; padding: 10px 20px; font-size: 16px; background-color: #ffc107; color: #000; border: none; border-radius: 8px; cursor: pointer;">🔁 Actualizar App</button>
+<script>
 function actualizarApp() {
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
       for (let reg of registrations) {
         reg.unregister().then(() => {
-          caches.keys().then(function(names) {
+          caches.keys().then(names => {
             for (let name of names) caches.delete(name);
           });
           location.reload(true);
@@ -1011,220 +858,108 @@ function actualizarApp() {
     location.reload(true);
   }
 }
-</script></div><div id="interfazSecundaria" style="display: none;"><button onclick="mostrarInterfazPrincipal()" style="
-    margin: 20px auto; display: block; background-color: tomato; color: white;
-    padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
-">⬅ Volver al Inicio</button>
-<button onclick="cargarDatosJSON()" style="margin-left:10px; padding:10px 15px; border-radius:8px; background:#0a7d5f; color:white; border:none;">📂 Cargar Datos</button>
-<div id="barraCarga" style="margin-top:10px; display:none;">
-<progress id="progresoCarga" max="100" style="width:80%; height:20px;" value="0"></progress>
-<p id="estadoCarga" style="font-size:14px;"></p>
+</script>
 </div>
-<div style="max-width: 800px; margin: auto; padding: 20px; text-align: center;"><header>Consulta de Datos</header><form>
-<input id="numeroUsuario" placeholder="Ingrese número de usuario o llave" type="tel"/>
-<button class="button green" onclick="buscarDatos()" style="display:none;" type="button">Cliente</button>
-<button class="button blue" onclick="buscarDatosConLlave()" style="display:none;" type="button">Medidor</button>
-</form><div class="numero-consultado" id="numeroConsultado"></div><div id="resultados"></div><button class="btn-clear button" onclick="limpiarConsulta()" style="display:none;">Limpiar Consulta</button><script>
-    
-    
-    // Validación y limpieza OBLIGATORIA de cache al cambiar de mes
+<div id="interfazSecundaria" style="display: none;">
+    <button onclick="mostrarInterfazPrincipal()" style="margin: 20px auto; display: block; background-color: tomato; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">⬅ Volver al Inicio</button>
+    <button onclick="cargarDatosJSON()" style="margin-left:10px; padding:10px 15px; border-radius:8px; background:#0a7d5f; color:white; border:none;">📂 Cargar Datos</button>
+    <div id="barraCarga" style="margin-top:10px; display:none;">
+        <progress id="progresoCarga" max="100" style="width:80%; height:20px;" value="0"></progress>
+        <p id="estadoCarga" style="font-size:14px;"></p>
+    </div>
+    <div style="max-width: 800px; margin: auto; padding: 20px; text-align: center;">
+        <header>Consulta de Datos</header>
+        <form onsubmit="event.preventDefault(); buscarDatos();">
+            <input id="numeroUsuario" placeholder="Ingrese número de usuario o llave" type="tel"/>
+            <button class="button green" onclick="buscarDatos()" style="display:none;" type="button">Cliente</button>
+            <button class="button blue" onclick="buscarDatosConLlave()" style="display:none;" type="button">Medidor</button>
+        </form>
+        <div class="numero-consultado" id="numeroConsultado"></div>
+        <div id="resultados"></div>
+        <button class="btn-clear button" onclick="limpiarConsulta()" style="display:none;">Limpiar Consulta</button>
+    </div>
+<script>
+// Validación y limpieza OBLIGATORIA de cache al cambiar de mes
 (function() {
-    // Función principal de limpieza completa
     async function limpiarCacheCompleto() {
         try {
-            // Mostrar overlay de progreso
             const overlay = document.createElement('div');
-            overlay.id = 'cache-cleaner-overlay';
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.backgroundColor = 'rgba(0,0,0,0.95)';
-            overlay.style.zIndex = '10000';
-            overlay.style.display = 'flex';
-            overlay.style.flexDirection = 'column';
-            overlay.style.justifyContent = 'center';
-            overlay.style.alignItems = 'center';
-            overlay.style.color = 'white';
-            overlay.style.padding = '20px';
-            overlay.style.textAlign = 'center';
-            
-            overlay.innerHTML = `
-                <h2 style="color: #4CAF50; margin-bottom: 20px;">Actualización Requerida</h2>
-                <div style="width: 80%; max-width: 300px; height: 20px; background: #333; border-radius: 10px; margin: 10px 0;">
-                    <div id="cleaner-progress-bar" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.6s;"></div>
-                </div>
-                <p id="cleaner-progress-text" style="margin-top: 10px; color: #aaa;">Preparando actualización...</p>
-            `;
-            
+            Object.assign(overlay.style, { position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.95)', zIndex: '10000', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white', padding: '20px', textAlign: 'center' });
+            overlay.innerHTML = `<h2 style="color: #4CAF50;">Actualización Requerida</h2><div style="width: 80%; max-width: 300px; height: 20px; background: #333; border-radius: 10px; margin: 10px 0;"><div id="cleaner-progress-bar" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.6s;"></div></div><p id="cleaner-progress-text" style="color: #aaa;">Preparando...</p>`;
             document.body.appendChild(overlay);
             
-            // Paso 1: Eliminar Service Workers y caches
-            actualizarProgreso('Eliminando datos antiguos...', 20);
+            const actualizarProgreso = (mensaje, porcentaje) => {
+                document.getElementById('cleaner-progress-bar').style.width = `${porcentaje}%`;
+                document.getElementById('cleaner-progress-text').textContent = mensaje;
+            };
+            
+            actualizarProgreso('Eliminando datos...', 20);
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 await Promise.all(registrations.map(reg => reg.unregister()));
-                
                 const cacheNames = await caches.keys();
                 await Promise.all(cacheNames.map(name => caches.delete(name)));
             }
-            
-            // Paso 2: Limpiar almacenamiento local
             actualizarProgreso('Limpiando configuraciones...', 40);
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Paso 3: Limpiar IndexedDB
+            localStorage.clear(); sessionStorage.clear();
             actualizarProgreso('Actualizando bases de datos...', 60);
-            if (window.indexedDB) {
+            if (window.indexedDB && window.indexedDB.databases) {
                 const dbs = await window.indexedDB.databases();
-                await Promise.all(dbs.map(db => {
-                    return new Promise((resolve, reject) => {
-                        const request = window.indexedDB.deleteDatabase(db.name);
-                        request.onsuccess = resolve;
-                        request.onerror = reject;
-                    });
-                }));
+                await Promise.all(dbs.map(db => new Promise((resolve, reject) => {
+                    const req = window.indexedDB.deleteDatabase(db.name);
+                    req.onsuccess = resolve; req.onerror = reject;
+                })));
             }
-            
-            // Paso 4: Eliminar cookies del dominio
-            actualizarProgreso('Finalizando limpieza...', 80);
-            document.cookie.split(';').forEach(cookie => {
-                const eqPos = cookie.indexOf('=');
-                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.pamplona-bot.github.io`;
-            });
-            
-            // Actualizar mes/año en localStorage
+            actualizarProgreso('Finalizando...', 80);
             const fecha = new Date();
             localStorage.setItem('ultimoMesUsado', fecha.getMonth() + 1);
             localStorage.setItem('ultimoAnioUsado', fecha.getFullYear());
-            
-            // Completado - Recargar
-            actualizarProgreso('¡Actualización completada!', 100);
-            setTimeout(() => {
-                window.location.href = window.location.origin + window.location.pathname + '?nocache=' + Date.now();
-            }, 1500);
-            
-            function actualizarProgreso(mensaje, porcentaje) {
-                const progressBar = document.getElementById('cleaner-progress-bar');
-                const progressText = document.getElementById('cleaner-progress-text');
-                
-                if (progressBar) progressBar.style.width = `${porcentaje}%`;
-                if (progressText) progressText.textContent = mensaje;
-            }
-            
+            actualizarProgreso('¡Completado!', 100);
+            setTimeout(() => window.location.reload(true), 1500);
         } catch (error) {
             console.error('Error en limpieza completa:', error);
-            document.getElementById('cache-cleaner-overlay').innerHTML = `
-                <h2 style="color: #f44336;">Error en la actualización</h2>
-                <p style="color: #ff9800;">La aplicación no puede continuar sin actualizar</p>
-                <button onclick="window.location.reload(true)" style="
-                    padding: 12px 24px;
-                    background: #2196F3;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    cursor: pointer;
-                    margin-top: 20px;
-                ">
-                    Recargar manualmente (Ctrl+F5)
-                </button>
-            `;
+            document.body.innerHTML = `<div style="color:white;text-align:center;padding:50px;"><h2>Error en la actualización</h2><p>Recargue la página (Ctrl+F5) para reintentar.</p></div>`;
         }
     }
-    
-    // Verificación OBLIGATORIA al cargar
     document.addEventListener("DOMContentLoaded", function() {
-        const fechaActual = new Date();
-        const mesActual = fechaActual.getMonth() + 1;
-        const anioActual = fechaActual.getFullYear();
-        
+        const fecha = new Date();
+        const mesActual = fecha.getMonth() + 1;
+        const anioActual = fecha.getFullYear();
         const ultimoMesUsado = localStorage.getItem('ultimoMesUsado');
         const ultimoAnioUsado = localStorage.getItem('ultimoAnioUsado');
         
-        // Si detecta cambio de mes, limpieza OBLIGATORIA
-        if (!ultimoMesUsado || (ultimoAnioUsado < anioActual) || 
-            (ultimoAnioUsado == anioActual && ultimoMesUsado < mesActual)) {
-            
-            // Mostrar mensaje de actualización obligatoria
+        if (!ultimoMesUsado || (ultimoAnioUsado < anioActual) || (ultimoAnioUsado == anioActual && ultimoMesUsado < mesActual)) {
             const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.backgroundColor = 'rgba(0,0,0,0.95)';
-            overlay.style.zIndex = '10000';
-            overlay.style.display = 'flex';
-            overlay.style.flexDirection = 'column';
-            overlay.style.justifyContent = 'center';
-            overlay.style.alignItems = 'center';
-            overlay.style.color = 'white';
-            overlay.style.padding = '20px';
-            overlay.style.textAlign = 'center';
-            
-            overlay.innerHTML = `
-                <div style="background: #222; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%;">
-                    <h2 style="color: #4CAF50; margin-top: 0;">Actualización Requerida</h2>
-                    <p>La aplicación debe actualizarse para el nuevo mes.</p>
-                    
-                    <div style="background: #333; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <p style="margin: 5px 0;"><strong>Mes anterior:</strong> ${ultimoMesUsado || 'N/A'}/${ultimoAnioUsado || 'N/A'}</p>
-                        <p style="margin: 5px 0;"><strong>Mes actual:</strong> ${mesActual}/${anioActual}</p>
-                    </div>
-                    
-                    <p style="color: #FF9800; margin-bottom: 20px;">Se borrarán todos los datos locales para garantizar el correcto funcionamiento.</p>
-                    
-                    <div id="countdown" style="font-size: 18px; margin: 20px 0;">
-                        Iniciando actualización en 5 segundos...
-                    </div>
-                </div>
-            `;
-            
+            Object.assign(overlay.style, { position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.95)', zIndex: '10000', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', padding: '20px', textAlign: 'center' });
+            overlay.innerHTML = `<div style="background: #222; padding: 30px; border-radius: 10px; max-width: 500px;"><h2>Actualización Requerida</h2><p>Actualizando la aplicación para el nuevo mes.</p><div id="countdown" style="font-size: 18px; margin: 20px 0;">Iniciando en 5s...</div></div>`;
             document.body.appendChild(overlay);
-            
-            // Cuenta regresiva antes de limpiar automáticamente
-            let segundos = 5;
-            const countdownElement = document.getElementById('countdown');
-            const countdownInterval = setInterval(() => {
-                segundos--;
-                countdownElement.textContent = `Iniciando actualización en ${segundos} segundos...`;
-                
-                if (segundos <= 0) {
-                    clearInterval(countdownInterval);
-                    limpiarCacheCompleto();
-                }
+            let s = 5;
+            const i = setInterval(() => {
+                s--;
+                document.getElementById('countdown').textContent = `Iniciando en ${s}s...`;
+                if (s <= 0) { clearInterval(i); limpiarCacheCompleto(); }
             }, 1000);
         } else {
-            // Guardar el mes/año actual si no estaba registrado
             localStorage.setItem('ultimoMesUsado', mesActual);
             localStorage.setItem('ultimoAnioUsado', anioActual);
         }
     });
 })();
-
-</script></div></div><script>
-function mostrarInterfazSecundaria() {
-    document.getElementById('interfazPrincipal').style.display = 'none';
-    document.getElementById('interfazSecundaria').style.display = 'block';
-}
-function mostrarInterfazPrincipal() {
-    document.getElementById('interfazSecundaria').style.display = 'none';
-    document.getElementById('interfazPrincipal').style.display = 'block';
-}
 </script>
+</div>
+
 <script>
+function mostrarInterfazSecundaria() { document.getElementById('interfazPrincipal').style.display = 'none'; document.getElementById('interfazSecundaria').style.display = 'block'; }
+function mostrarInterfazPrincipal() { document.getElementById('interfazSecundaria').style.display = 'none'; document.getElementById('interfazPrincipal').style.display = 'block'; }
+
 document.addEventListener("DOMContentLoaded", function () {
   const mesActual = new Date().getMonth() + 1;
   const anioActual = new Date().getFullYear();
   const claveGuardada = localStorage.getItem("acceso_autorizado");
-
-  if (claveGuardada === mesActual + "-" + anioActual) {
+  if (claveGuardada === `${mesActual}-${anioActual}`) {
     iniciarFlujoApp();
   } else {
+    document.getElementById("loginContainer").style.display = "block";
     document.getElementById("pantallaInicio").style.display = "none";
     document.getElementById("interfazPrincipal").style.display = "none";
     document.getElementById("interfazSecundaria").style.display = "none";
@@ -1233,43 +968,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function verificarClave() {
   const clave = document.getElementById("claveUsuario").value.trim();
-  if (!clave) {
-    document.getElementById("mensajeLogin").textContent = "Ingrese una clave.";
-    return;
-  }
-
+  if (!clave) return document.getElementById("mensajeLogin").textContent = "Ingrese una clave.";
   fetch(`https://script.google.com/macros/s/AKfycbxI762q67BzAK-IkJS3Nh8y6qrSCu7YfxPMEvngmO0H8y0sUx89Rj2hjCOe4P22VeNwSA/exec?clave=${clave}`)
     .then(res => res.text())
     .then(respuesta => {
       if (respuesta.trim() === "OK") {
         const mesActual = new Date().getMonth() + 1;
         const anioActual = new Date().getFullYear();
-        localStorage.setItem("acceso_autorizado", mesActual + "-" + anioActual);
+        localStorage.setItem("acceso_autorizado", `${mesActual}-${anioActual}`);
         iniciarFlujoApp();
       } else {
         document.getElementById("mensajeLogin").textContent = "Clave incorrecta.";
       }
     })
-    .catch(() => {
-      document.getElementById("mensajeLogin").textContent = "Error al validar. Verifique su conexión.";
-    });
+    .catch(() => document.getElementById("mensajeLogin").textContent = "Error al validar. Verifique su conexión.");
 }
 
 function iniciarFlujoApp() {
   document.getElementById("loginContainer").style.display = "none";
-
-  const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const esAndroid = /android/i.test(navigator.userAgent);
-
-  const mensaje = document.getElementById("mensajeInstruccion");
-  if (esIOS) {
-    mensaje.innerHTML = "<p>📱 En iPhone, toca el botón <strong>Compartir</strong> y elige <strong>'Agregar a pantalla de inicio'</strong>.</p>";
-  } else if (esAndroid) {
-    mensaje.innerHTML = "<p>📱 En Android, abre el menú del navegador y selecciona <strong>'Agregar a pantalla principal'</strong>.</p>";
-  } else {
-    mensaje.innerHTML = "<p>Esta aplicación solo funciona correctamente cuando es instalada en la pantalla de inicio.</p>";
-  }
-
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   if (isStandalone) {
     document.getElementById("pantallaInicio").style.display = "none";
@@ -1280,173 +996,74 @@ function iniciarFlujoApp() {
 }
 </script>
 
-
 <script>
-let dataUsuarios = [];
-let dataLectura = [];
-let dataRevisiones = [];
-let usuariosCargados = false;
-let lecturasCargadas = false;
-let revisionesCargadas = false;
+let dataUsuarios = [], dataLectura = [], dataRevisiones = [];
+let datosCargados = false;
 
-
-function cargarDatosJSON() {
-  document.getElementById("barraCarga").style.display = "block";
-  document.getElementById("estadoCarga").textContent = "🔄 Iniciando carga de datos...";
-  document.getElementById("progresoCarga").value = 0;
-
-  let progreso = 0;
-
-  fetch("https://pamplona-bot.github.io/pamplona-app-pwa/usuarios.json")
-    .then(res => {
-      progreso = 20;
-      document.getElementById("progresoCarga").value = progreso;
-      document.getElementById("estadoCarga").textContent = "📂 Cargando usuarios...";
-      return res.json();
-    })
-    .then(data => {
-      dataUsuarios = data;
-      usuariosCargados = true;
-      progreso = 40;
-      document.getElementById("progresoCarga").value = progreso;
-      document.getElementById("estadoCarga").textContent = "📘 Usuarios cargados. Cargando lecturas...";
-      return fetch("https://pamplona-bot.github.io/pamplona-app-pwa/lecturas.json");
-    })
-    .then(res => {
-      progreso = 60;
-      document.getElementById("progresoCarga").value = progreso;
-      return res.json();
-    })
-    .then(data => {
-      dataLectura = data;
-      lecturasCargadas = true;
-      document.getElementById("estadoCarga").textContent = "📙 Lecturas cargadas. Cargando revisiones...";
-      return fetch("https://pamplona-bot.github.io/pamplona-app-pwa/revisiones.json");
-    })
-    .then(res => {
-      progreso = 80;
-      document.getElementById("progresoCarga").value = progreso;
-      return res.json();
-    })
-    .then(data => {
-      dataRevisiones = data;
-      revisionesCargadas = true;
-      progreso = 100;
-      document.getElementById("progresoCarga").value = progreso;
-      document.getElementById("estadoCarga").textContent = "✅ ¡Todos los datos cargados correctamente!";
+async function cargarDatosJSON() {
+  if (datosCargados) return alert("Los datos ya fueron cargados.");
+  const barraCarga = document.getElementById("barraCarga");
+  const progresoCarga = document.getElementById("progresoCarga");
+  const estadoCarga = document.getElementById("estadoCarga");
+  barraCarga.style.display = "block";
+  
+  const actualizarProgreso = (texto, valor) => {
+      estadoCarga.textContent = texto;
+      progresoCarga.value = valor;
+  };
+  
+  try {
+      actualizarProgreso("📂 Cargando usuarios...", 20);
+      dataUsuarios = await (await fetch("https://pamplona-bot.github.io/pamplona-app-pwa/usuarios.json")).json();
+      actualizarProgreso("📘 Cargando lecturas...", 50);
+      dataLectura = await (await fetch("https://pamplona-bot.github.io/pamplona-app-pwa/lecturas.json")).json();
+      actualizarProgreso("📙 Cargando revisiones...", 80);
+      dataRevisiones = await (await fetch("https://pamplona-bot.github.io/pamplona-app-pwa/revisiones.json")).json();
+      
+      actualizarProgreso("✅ ¡Datos cargados!", 100);
+      datosCargados = true;
       document.querySelector('button[onclick="buscarDatos()"]').style.display = "inline-block";
       document.querySelector('button[onclick="buscarDatosConLlave()"]').style.display = "inline-block";
       document.querySelector('button[onclick="limpiarConsulta()"]').style.display = "inline-block";
-    })
-    .catch(err => {
-      console.error("Error al cargar los archivos JSON", err);
-      document.getElementById("estadoCarga").textContent = "❌ Error al cargar datos. Revisa la conexión o el nombre.";
-    });
+  } catch(err) {
+      actualizarProgreso("❌ Error al cargar. Revise la conexión.", 0);
+      console.error("Error al cargar JSON", err);
+  }
 }
 
+function renderCard(title, content) {
+    return `<div class="card"><h3>${title}</h3>${content}</div>`;
+}
 
 function buscarDatos() {
-  if (!usuariosCargados || !lecturasCargadas || !revisionesCargadas) {
-    alert("Primero debes cargar los datos.");
-    return;
-  }
-
+  if (!datosCargados) return alert("Primero cargue los datos.");
   const numero = document.getElementById("numeroUsuario").value.trim();
+  document.getElementById("numeroConsultado").innerHTML = `<strong>CLIENTE:</strong> ${numero}`;
   let html = "";
-
-  document.getElementById("numeroConsultado").innerHTML = `<strong>CLIENTE CONSULTADO:</strong> ${numero}`;
-
   const usuario = dataUsuarios.find(row => row[0] === numero);
   const lectura = dataLectura.find(row => row[0] === numero);
   const revision = dataRevisiones.find(row => row[0] === numero);
-
-  if (usuario) {
-    html += `<div class="card">
-      <h3>Información del Usuario</h3>
-      <p><strong>Ciclo:</strong> ${usuario[1]}</p>
-      <p><strong>Medidor:</strong> ${usuario[2]}</p>
-      <p><strong>Nombre:</strong> ${usuario[3]}</p>
-      <p><strong>Dirección:</strong> ${usuario[4]}</p>
-      <p><strong>Teléfono:</strong> ${usuario[5]}</p>
-      <p><strong>GPS:</strong> <a href="${usuario[6]}" target="_blank">Ver en mapa</a></p>
-    </div>`;
-  }
-
-  if (lectura) {
-    html += `<div class="card">
-      <h3>Lecturas</h3>
-      <p><strong>Dato 1:</strong> ${lectura[1]}</p>
-      <p><strong>Dato 2:</strong> ${lectura[2]}</p>
-      <p><strong>Dato 3:</strong> ${lectura[3]}</p>
-    </div>`;
-  }
-
-  if (revision) {
-    html += `<div class="card">
-      <h3>Revisiones</h3>
-      <pre>${revision[1]}</pre>
-    </div>`;
-  }
-
-  if (!usuario && !lectura && !revision) {
-    html = `<div class="card"><p>No se encontró información para el número ingresado.</p></div>`;
-  }
-
-  document.getElementById("resultados").innerHTML = html;
+  if (usuario) html += renderCard("Información del Usuario", `<p><strong>Ciclo:</strong> ${usuario[1]}</p><p><strong>Medidor:</strong> ${usuario[2]}</p><p><strong>Nombre:</strong> ${usuario[3]}</p><p><strong>Dirección:</strong> ${usuario[4]}</p><p><strong>Teléfono:</strong> ${usuario[5]}</p><p><strong>GPS:</strong> <a href="${usuario[6]}" target="_blank">Ver mapa</a></p>`);
+  if (lectura) html += renderCard("Lecturas", `<p><strong>Dato 1:</strong> ${lectura[1]}</p><p><strong>Dato 2:</strong> ${lectura[2]}</p><p><strong>Dato 3:</strong> ${lectura[3]}</p>`);
+  if (revision) html += renderCard("Revisiones", `<pre>${revision[1]}</pre>`);
+  document.getElementById("resultados").innerHTML = html || renderCard("Sin resultados", "<p>No se encontró información para el número ingresado.</p>");
 }
-
 
 function buscarDatosConLlave() {
-  if (!usuariosCargados || !lecturasCargadas || !revisionesCargadas) {
-    alert("Primero debes cargar los datos.");
-    return;
-  }
-
+  if (!datosCargados) return alert("Primero cargue los datos.");
   const llave = document.getElementById("numeroUsuario").value.trim();
+  document.getElementById("numeroConsultado").innerHTML = `<strong>MEDIDOR:</strong> ${llave}`;
   let html = "";
-
-  document.getElementById("numeroConsultado").innerHTML = `<strong>MEDIDOR CONSULTADO:</strong> ${llave}`;
-
   const usuario = dataUsuarios.find(row => row[7] === llave);
-  const lectura = dataLectura.find(row => row[4] === llave);
-  const revision = dataRevisiones.find(row => row[1] === llave);
-
-  if (usuario) {
-    html += `<p><strong>Cliente:</strong> ${usuario[0]}</p>`;
-    html += `<div class="card">
-      <h3>Información del Usuario</h3>
-      <p><strong>Ciclo:</strong> ${usuario[1]}</p>
-      <p><strong>Medidor:</strong> ${usuario[2]}</p>
-      <p><strong>Nombre:</strong> ${usuario[3]}</p>
-      <p><strong>Dirección:</strong> ${usuario[4]}</p>
-      <p><strong>Teléfono:</strong> ${usuario[5]}</p>
-      <p><strong>GPS:</strong> <a href="${usuario[6]}" target="_blank">Ver en mapa</a></p>
-    </div>`;
+  if(usuario) {
+      const lectura = dataLectura.find(row => row[0] === usuario[0]);
+      const revision = dataRevisiones.find(rev => rev[0] === usuario[0]);
+      html += renderCard("Información del Usuario", `<p><strong>Cliente:</strong> ${usuario[0]}</p><p><strong>Ciclo:</strong> ${usuario[1]}</p><p><strong>Medidor:</strong> ${usuario[2]}</p><p><strong>Nombre:</strong> ${usuario[3]}</p><p><strong>Dirección:</strong> ${usuario[4]}</p><p><strong>Teléfono:</strong> ${usuario[5]}</p><p><strong>GPS:</strong> <a href="${usuario[6]}" target="_blank">Ver mapa</a></p>`);
+      if (lectura) html += renderCard("Lecturas", `<p><strong>Dato 1:</strong> ${lectura[1]}</p><p><strong>Dato 2:</strong> ${lectura[2]}</p><p><strong>Dato 3:</strong> ${lectura[3]}</p>`);
+      if (revision) html += renderCard("Revisiones SCR", `<pre>${revision[1]}</pre>`);
   }
-
-  if (lectura) {
-    html += `<div class="card">
-      <h3>Lecturas</h3>
-      <p><strong>Dato 1:</strong> ${lectura[1]}</p>
-      <p><strong>Dato 2:</strong> ${lectura[2]}</p>
-      <p><strong>Dato 3:</strong> ${lectura[3]}</p>
-    </div>`;
-  }
-
-  if (revision) {
-    html += `<div class="card">
-      <h3>Revisiones SCR</h3>
-      <pre>${revision[1]}</pre>
-    </div>`;
-  }
-
-  if (!usuario && !lectura && !revision) {
-    html = `<div class="card"><p>No se encontró información para el número ingresado.</p></div>`;
-  }
-
-  document.getElementById("resultados").innerHTML = html;
+  document.getElementById("resultados").innerHTML = html || renderCard("Sin resultados", "<p>No se encontró información para el medidor ingresado.</p>");
 }
-
 
 function limpiarConsulta() {
   document.getElementById("numeroUsuario").value = "";
